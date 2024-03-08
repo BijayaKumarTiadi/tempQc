@@ -29,14 +29,14 @@ def decode_string(encoded_text):
 # Example usage
 original_string = "wjosoooooo"
 
-
+#You can directly run from terminal to test the encoding...
 # Encode the original string
-encoded_string = encode_string(original_string)
-print("Encoded string:", encoded_string)
+#encoded_string = encode_string(original_string)
+#print("Encoded string:", encoded_string)
 
 # Decode the encoded string
-decoded_string = decode_string(encoded_string)
-print("Decoded string:", decoded_string)
+#decoded_string = decode_string(encoded_string)
+#print("Decoded string:", decoded_string)
 
 # Verify if the decoded string matches the original string
-print("Matched:", original_string == decoded_string)
+#print("Matched:", original_string == decoded_string)
