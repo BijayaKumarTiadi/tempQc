@@ -105,6 +105,18 @@ DATABASES = {
         # 'PORT': '3306',             # MySQL default port
         'HOST': '103.170.114.33',        # Hostname for your MySQL server
         'PORT': '33063',             # MySQL default port
+    },
+        'default2': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'spmis1819kld',     # Your database name
+            'USER': 'manish',           # Your database user
+            'PASSWORD': 'manish',       # Your database password
+            #'HOST': '103.170.114.33',        # Hostname for your MySQL server
+            #'PORT': '33063',             # MySQL default port
+            # 'HOST': '127.0.0.1',        # Hostname for your MySQL server
+            # 'PORT': '3306',             # MySQL default port
+            'HOST': '103.170.114.33',        # Hostname for your MySQL server
+            'PORT': '33063',             # MySQL default port
     }
 }
 #python manage.py inspectdb usermaster > models.py to fetch all the tables into model
