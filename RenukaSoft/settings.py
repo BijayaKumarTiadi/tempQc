@@ -92,6 +92,9 @@ WSGI_APPLICATION = 'RenukaSoft.wsgi.application'
 #     }
 # }
 
+APPEND_SLASH = False
+
+
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
 

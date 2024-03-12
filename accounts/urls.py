@@ -27,9 +27,9 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('', apipage, name='apipage'),
-    path('login/', CustomUserLoginView.as_view(), name='user-login'),
-    path('login-view/', LoginApi.as_view(), name='login-view'),
-    path('getdata/', GetDataView.as_view(), name='get_data'),
+    path('login', CustomUserLoginView.as_view(), name='user-login'),
+    path('login-view', LoginApi.as_view(), name='login-view'),
+    path('getdata', GetDataView.as_view(), name='get_data'),
 
 
 
