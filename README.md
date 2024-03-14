@@ -50,19 +50,31 @@ mysqlclient==2.2.4
 ## installation
 
 # Clone the repository
-# git clone https://github.com/anukulRST/SmartMIS-Backend.git
-
+  ```bash
+   git clone https://github.com/anukulRST/SmartMIS-Backend.git
+  ```
 # Change into the project directory
+```bash
 cd your-project
+```
 
 # Create a virtual environment (optional but recommended)
+```bash
 python -m venv venv
+```
+
 
 # Activate the virtual environment
+```bash
 source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+```
+
 
 # Install dependencies
+```bash
 pip install -r requirements.txt
+```
+
 
 ## configuration
 - Make sure to change the IP and Port in settings.py to local mysql server.
