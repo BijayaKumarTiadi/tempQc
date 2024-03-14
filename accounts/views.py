@@ -6,12 +6,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import CustomUserLoginSerializer, LoginSerializer
+from .serializers import CustomUserLoginSerializer, CustomUserSerializer, LoginSerializer
 from django.contrib.auth import authenticate
 from django.db import connection, connections
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
-
+from .models import CustomUser
 #Private methods
 
 from .encodedDbs import encode_string,decode_string
@@ -211,6 +211,31 @@ class GetDataView(APIView):
         # Your logic to fetch data goes here
         data = {"message": "This is protected data"}
         return Response(data)
+
+class Dashboard(APIView):
+    """
+    Dashboard view accessible only to authenticated users.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Get user information for the authenticated user.
+
+        Returns:
+            Response: A JSON response containing user information.
+        """
+        user = request.user
+
+        try:
+            user_data = CustomUser.objects.get(userloginname=user.userloginname)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User does not exist."}, status=404)
+        serializer = CustomUserSerializer(user_data)
+        
+        return Response(serializer.data)
 
 
 def apipage(request):

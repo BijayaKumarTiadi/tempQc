@@ -99,3 +99,13 @@ class LoginSerializer(serializers.Serializer):
     # password = request.data.get('password')
     # IcompanyID = request.data.get('IcompanyID')
     # db_encode = request.data.get('db_encode')
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    """
+    Using this serializer for the serialization of the User data which is fetched after login of the user.
+    -> we can add the table of permissions here and do some permission stuff here .
+    """
+    class Meta:
+        model = CustomUser
+        # fields = ['id', 'userloginname', 'email']
+        fields = '__all__'
