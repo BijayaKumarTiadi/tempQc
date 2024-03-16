@@ -248,7 +248,7 @@ class GetIcompanyId(APIView):
     Returns:
         - company_profile (list of dict): List of dictionaries containing company names and IDs.
     """
-    def get(self, request):
+    def post(self, request):
         data = request.data
         dbname=decode_string(str(data.get('db_encode')))
         connection.settings_dict['NAME'] = dbname
