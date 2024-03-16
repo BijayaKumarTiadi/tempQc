@@ -12,7 +12,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
-
+import os
+from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -100,33 +101,76 @@ APPEND_SLASH = False
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
+load_dotenv()
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'spmis2223yrk',     # Your database name
-        'USER': 'manish',           # Your database user
-        'PASSWORD': 'manish',       # Your database password
-        #'HOST': '103.170.114.33',        # Hostname for your MySQL server
-        #'PORT': '33063',             # MySQL default port
-        # 'HOST': '127.0.0.1',        # Hostname for your MySQL server
-        # 'PORT': '3306',             # MySQL default port
-        'HOST': '103.170.114.33',        # Hostname for your MySQL server
-        'PORT': '33063',             # MySQL default port
-    },
-        'default2': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'spmis1819kld',     # Your database name
-            'USER': 'manish',           # Your database user
-            'PASSWORD': 'manish',       # Your database password
-            #'HOST': '103.170.114.33',        # Hostname for your MySQL server
-            #'PORT': '33063',             # MySQL default port
-            # 'HOST': '127.0.0.1',        # Hostname for your MySQL server
-            # 'PORT': '3306',             # MySQL default port
-            'HOST': '103.170.114.33',        # Hostname for your MySQL server
-            'PORT': '33063',             # MySQL default port
+        'ENGINE': os.getenv('DB_ENGINE'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'spmis2223yrk',     # Your database name
+#         'USER': 'manish',           # Your database user
+#         'PASSWORD': 'manish',       # Your database password
+#         #'HOST': '103.170.114.33',        # Hostname for your MySQL server
+#         #'PORT': '33063',             # MySQL default port
+#         # 'HOST': '127.0.0.1',        # Hostname for your MySQL server
+#         # 'PORT': '3306',             # MySQL default port
+#         'HOST': '103.170.114.33',        # Hostname for your MySQL server
+#         'PORT': '33063',             # MySQL default port
+    # },
+    #     'kld': {
+    #         'ENGINE': 'django.db.backends.mysql',
+    #         'NAME': 'spmis1819kld',     # Your database name
+    #         'USER': 'manish',           # Your database user
+    #         'PASSWORD': 'manish',       # Your database password
+    #         #'HOST': '103.170.114.33',        # Hostname for your MySQL server
+    #         #'PORT': '33063',             # MySQL default port
+    #         # 'HOST': '127.0.0.1',        # Hostname for your MySQL server
+    #         # 'PORT': '3306',             # MySQL default port
+    #         'HOST': '103.170.114.33',        # Hostname for your MySQL server
+    #         'PORT': '33063',             # MySQL default port
+    # },
+    #     'kld2': {
+    #         'ENGINE': 'django.db.backends.mysql',
+    #         'NAME': 'spmis1516aam',     # Your database name
+    #         'USER': 'manish',           # Your database user
+    #         'PASSWORD': 'manish',       # Your database password
+    #         #'HOST': '103.170.114.33',        # Hostname for your MySQL server
+    #         #'PORT': '33063',             # MySQL default port
+    #         # 'HOST': '127.0.0.1',        # Hostname for your MySQL server
+    #         # 'PORT': '3306',             # MySQL default port
+    #         'HOST': '103.170.114.33',        # Hostname for your MySQL server
+    #         'PORT': '33063',             # MySQL default port
+    # },
+#     }
+# }
+# spmis2021ster
+# spmis2223ppv
+# spmis1718awv_train
+# spmis1516aam
+# spmis1415aomnet
+# spmis2223cgd
+# spmis1819kld
+# spmis2223kora
+# spmis1819kld_spf
+# spmis1819kld
+# maheen_autojc
+# spmis2223pppm
+# spmis1920cdc
+# spmis1819kld
+# spmis2021sapco8
+# spmis1819kld_spf
+# spmis2021cod
+# spmis2223yrk
+# spmis2223yrk_old
 #python manage.py inspectdb usermaster > models.py to fetch all the tables into model
 
 # Password validation

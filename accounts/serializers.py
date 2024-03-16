@@ -107,5 +107,5 @@ class CustomUserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = CustomUser
-        # fields = ['id', 'userloginname', 'email']
-        fields = '__all__'
+        fields = ['id', 'userloginname', 'email']
+        # fields = '__all__'

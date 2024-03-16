@@ -78,12 +78,12 @@ class CustomUserLoginView(APIView):#user authentication using 1 method
                 columns1 = [col[0] for col in cursor.description]
                 results1 = cursor.fetchall()
                 cursor.nextset()
-                columns2 = [col[0] for col in cursor.description]
-                results2 = cursor.fetchall()
+                # columns2 = [col[0] for col in cursor.description]
+                # results2 = cursor.fetchall()
                 data = {
                     # 'finyear_details': [{columns1[i]: encode_string(str(value)) for i, value in enumerate(row)} for row in results1],
                     'finyear_details': [{columns1[i]: encode_string(str(value)) if columns1[i] == 'path' else str(value) for i, value in enumerate(row)} for row in results1],
-                    'company_profile': [{columns2[i]: str(value) for i, value in enumerate(row)} for row in results2]
+                    # 'company_profile': [{columns2[i]: str(value) for i, value in enumerate(row)} for row in results2]
                     # 'company_profile': [dict(zip(columns2, row)) for row in results2]
                 }
                 return Response(data)
@@ -182,21 +182,18 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
                 cursor.execute("""SELECT path, FinYear FROM admin.finyeardetails;SELECT CompanyName, IcompanyID FROM companyprofile;""")
                 columns1 = [col[0] for col in cursor.description]
                 results1 = cursor.fetchall()
-                cursor.nextset()
-                columns2 = [col[0] for col in cursor.description]
-                results2 = cursor.fetchall()
+                # cursor.nextset()
+                # columns2 = [col[0] for col in cursor.description]
+                # results2 = cursor.fetchall()
                 data = {
                     # 'finyear_details': [{columns1[i]: encode_string(str(value)) for i, value in enumerate(row)} for row in results1],
                     'finyear_details': [{columns1[i]: encode_string(str(value)) if columns1[i] == 'path' else str(value) for i, value in enumerate(row)} for row in results1],
-                    'company_profile': [{columns2[i]: str(value) for i, value in enumerate(row)} for row in results2]
+                    # 'company_profile': [{columns2[i]: str(value) for i, value in enumerate(row)} for row in results2]
                     # 'company_profile': [dict(zip(columns2, row)) for row in results2]
                 }
                 return Response(data)
         except Exception as e:
             raise APIException('Something went wrong!')
-
-
-
 
 
 class GetDataView(APIView):
@@ -236,6 +233,53 @@ class Dashboard(APIView):
         serializer = CustomUserSerializer(user_data)
         
         return Response(serializer.data)
+
+
+class GetIcompanyId(APIView):
+    """
+    API endpoint to retrieve company names and IDs.
+
+    This endpoint dynamically switches the database connection based on the provided database name,
+    retrieves the company names and IDs from the 'companyprofile' table, and returns the data.
+
+    Parameters:
+        - db_encode (str): The encoded database name.
+
+    Returns:
+        - company_profile (list of dict): List of dictionaries containing company names and IDs.
+    """
+    def get(self, request):
+        data = request.data
+        dbname=decode_string(str(data.get('db_encode')))
+        connection.settings_dict['NAME'] = dbname
+        """
+        dbname=decode_string(str(db_encode))
+        for db_key, db_config in connections.databases.items():
+            if db_config['NAME'] == dbname:
+                dbname = db_key
+                break
+
+        # Now use it ...
+        #  
+        if dbname:
+            # Dynamically switch the database connection
+            with connections[dbname].cursor() as cursor:
+                cursor.execute(f"USE {dbname};")
+        """
+        try:
+            if dbname:
+                with connection.cursor() as cursor:
+                    cursor.execute("""SELECT CompanyName,IcompanyID FROM companyprofile;""")
+                    columns1 = [col[0] for col in cursor.description]
+                    results1 = cursor.fetchall()
+
+                    data = {
+                        'company_profile': [dict(zip(columns1, row)) for row in results1]
+                    }
+                    return Response(data)
+        except Exception as e:
+            raise APIException(str(e))
+
 
 
 def apipage(request):
