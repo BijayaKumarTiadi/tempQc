@@ -25,7 +25,7 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(userloginname, password, **extra_fields)
     
 
-class CustomUser(AbstractUser):
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     id = models.CharField(db_column='UserID', primary_key=True, max_length=10)  # Field name made lowercase.
     userdepartmentid = models.CharField(db_column='UserDepartmentID', max_length=10, blank=True, null=True)  # Field name made lowercase.
     employeecode = models.CharField(db_column='EmployeeCode', max_length=10, blank=True, null=True)  # Field name made lowercase.
