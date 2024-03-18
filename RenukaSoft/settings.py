@@ -152,25 +152,7 @@ DATABASES = {
     # },
 #     }
 # }
-# spmis2021ster
-# spmis2223ppv
-# spmis1718awv_train
-# spmis1516aam
-# spmis1415aomnet
-# spmis2223cgd
-# spmis1819kld
-# spmis2223kora
-# spmis1819kld_spf
-# spmis1819kld
-# maheen_autojc
-# spmis2223pppm
-# spmis1920cdc
-# spmis1819kld
-# spmis2021sapco8
-# spmis1819kld_spf
-# spmis2021cod
-# spmis2223yrk
-# spmis2223yrk_old
+
 #python manage.py inspectdb usermaster > models.py to fetch all the tables into model
 
 # Password validation

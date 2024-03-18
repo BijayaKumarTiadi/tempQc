@@ -25,7 +25,7 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(userloginname, password, **extra_fields)
     
 
-class CustomUser(AbstractUser):
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     id = models.CharField(db_column='UserID', primary_key=True, max_length=10)  # Field name made lowercase.
     userdepartmentid = models.CharField(db_column='UserDepartmentID', max_length=10, blank=True, null=True)  # Field name made lowercase.
     employeecode = models.CharField(db_column='EmployeeCode', max_length=10, blank=True, null=True)  # Field name made lowercase.
@@ -103,5 +103,16 @@ class OTP(models.Model):
     def __str__(self):
         return f'OTP for {self.email}'
 
+class AppModule(models.Model):
+    name = models.CharField(max_length=100)
+    url = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    # icon = models.ImageField(upload_to='app_icons/', blank=True, null=True) #if you want to use icons for the specific module
+    permissions = models.CharField(max_length=100, blank=True)
+    is_active = models.BooleanField(default=True)
+    ordering = models.IntegerField(default=0)
+    visibility_condition = models.CharField(max_length=200, blank=True)
 
+    def __str__(self):
+        return self.name
 

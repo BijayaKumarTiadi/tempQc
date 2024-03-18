@@ -35,6 +35,8 @@ schema_view = get_schema_view(
         license=openapi.License(name="License Name"),
     ),
     public=True,
+    # url='/swagger/openapi.json', # we will add it later
+
     permission_classes=(permissions.AllowAny,),
 )
 

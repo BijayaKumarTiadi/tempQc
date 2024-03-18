@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser
+from .models import CustomUser,AppModule
 # Register your models here.
 
 @admin.register(CustomUser)
@@ -8,3 +8,10 @@ class CustomUserAdmin(admin.ModelAdmin):
     search_fields = ('userloginname', 'email')
 
 
+
+class AppModuleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'url', 'description', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'description', 'url')
+
+admin.site.register(AppModule, AppModuleAdmin)

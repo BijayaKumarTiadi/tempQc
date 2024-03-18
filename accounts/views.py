@@ -5,13 +5,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import CustomUserLoginSerializer, CustomUserSerializer, LoginSerializer
+from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
+from .serializers import  LoginSerializer
 from django.contrib.auth import authenticate
 from django.db import connection, connections
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .models import CustomUser,OTP
+from .models import AppModule,CustomUser,OTP
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.views.decorators.csrf import csrf_exempt
@@ -20,83 +20,79 @@ from django.template.loader import render_to_string
 import random
 import re
 import uuid
+from rest_framework import status
+from accounts.utils.sendgrid_mail import *
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password, check_password
 #Private methods
 
 from .encodedDbs import encode_string,decode_string
 
 
 
-class CustomUserLoginView(APIView):#user authentication using 1 method
+class GetIcompanyId(APIView):
     """
-        CustomUserLoginView
+    API endpoint to retrieve company names and IDs.
 
-        This view handles user authentication using the provided credentials.
-        The authentication process is validated in the associated serializer for code clarity.
+    This endpoint dynamically switches the database connection based on the provided database name,
+    retrieves the company names and IDs from the 'companyprofile' table, and returns the data.
 
-        Methods:
-        - POST: Authenticates the user using the provided credentials.
-        - GET: Fetches financial year details and company profiles.
+    Parameters:
+        - db_encode (str): The encoded database name.
 
-        Usage:
-        - Use POST with userloginname and password to authenticate.
-        - Use GET to retrieve financial year details and company profiles.
-
-        Serializer:
-        - CustomUserLoginSerializer: Validates user authentication credentials.
-
-        Raises:
-        - APIException: Raised for unexpected errors during GET request.
-
-        Note:
-        - The financial year details and company profiles are fetched using a custom database query.
-        - Use appropriate API authentication before accessing these endpoints.
+    Returns:
+        - company_profile (list of dict): List of dictionaries containing company names and IDs.
     """
-    serializer_class = CustomUserLoginSerializer
-
+    @swagger_auto_schema(
+        operation_summary="Retrieve company names and IDs",
+        operation_description="This endpoint retrieves company names and IDs from the 'companyprofile' table.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'db_encode': openapi.Schema(type=openapi.TYPE_STRING, description="Encoded database name"),
+            },
+            required=['db_encode']
+        ),
+        responses={
+            200: "Successful retrieval of company names and IDs",
+            500: "Internal server error"
+        }
+    )
     def post(self, request):
+        data = request.data
+        dbname=decode_string(str(data.get('db_encode')))
+        connection.settings_dict['NAME'] = dbname
         """
-            POST Method
+        dbname=decode_string(str(db_encode))
+        for db_key, db_config in connections.databases.items():
+            if db_config['NAME'] == dbname:
+                dbname = db_key
+                break
 
-            Authenticates the user using the provided credentials.
-
-            Parameters:
-            - userloginname (str): User login name.
-            - password (str): User password.
-
-            Returns:
-            - Response: Authenticated user details with access and refresh tokens.
-        """
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
-    
-    def get(self, request):
-        """
-            GET Method
-
-            Fetches financial year details and company profiles.
-
-            Returns:
-            - Response: Financial year details and company profiles.
+        # Now use it ...
+        #  
+        if dbname:
+            # Dynamically switch the database connection
+            with connections[dbname].cursor() as cursor:
+                cursor.execute(f"USE {dbname};")
         """
         try:
-            with connections['default'].cursor() as cursor:
-                cursor.execute("""SELECT path, FinYear FROM admin.finyeardetails;SELECT CompanyName, IcompanyID FROM companyprofile;""")
-                columns1 = [col[0] for col in cursor.description]
-                results1 = cursor.fetchall()
-                cursor.nextset()
-                # columns2 = [col[0] for col in cursor.description]
-                # results2 = cursor.fetchall()
-                data = {
-                    # 'finyear_details': [{columns1[i]: encode_string(str(value)) for i, value in enumerate(row)} for row in results1],
-                    'finyear_details': [{columns1[i]: encode_string(str(value)) if columns1[i] == 'path' else str(value) for i, value in enumerate(row)} for row in results1],
-                    # 'company_profile': [{columns2[i]: str(value) for i, value in enumerate(row)} for row in results2]
-                    # 'company_profile': [dict(zip(columns2, row)) for row in results2]
-                }
-                return Response(data)
+            if dbname:
+                with connection.cursor() as cursor:
+                    cursor.execute("""SELECT CompanyName,IcompanyID FROM companyprofile;""")
+                    columns = [col[0] for col in cursor.description]
+                    results = cursor.fetchall()
+
+                    # data = {
+                    #     'company_profile': [dict(zip(columns, row)) for row in results]
+                    # }
+                    company_profile = [dict(zip(columns, row)) for row in results]
+                    return Response({"message": "Success","data": {"company_profile": company_profile}},status=status.HTTP_200_OK)
         except Exception as e:
-            raise APIException('Something went wrong!')
+            error_message = f"Failed to retrieve company names and IDs: {str(e)}"
+            raise APIException(detail=error_message, code=500)
+
+
 
 class LoginApi(APIView):#user authentication using 2 method whichh needs encrypted password for security
     """
@@ -123,6 +119,25 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
         - The financial year details and company profiles are fetched using a custom database query.
         - Ensure the correct user authentication and company ID before accessing the GET endpoint.
     """
+    @swagger_auto_schema(
+        operation_summary="Authenticate user",
+        operation_description="Authenticates the user using the provided credentials.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'userloginname': openapi.Schema(type=openapi.TYPE_STRING, description="User login name"),
+                'password': openapi.Schema(type=openapi.TYPE_STRING, description="User password"),
+                'icompanyid': openapi.Schema(type=openapi.TYPE_STRING, description="Company ID"),
+                'db_encode': openapi.Schema(type=openapi.TYPE_STRING, description="Encoded database name"),
+            },
+            required=['userloginname', 'password', 'icompanyid', 'db_encode']
+        ),
+        responses={
+            200: "Authentication successful",
+            400: "Invalid user or password",
+            500: "Internal server error"
+        }
+    )
     def post(self, request):
         """
             POST Method
@@ -163,19 +178,32 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
                     with connections[dbname].cursor() as cursor:
                         cursor.execute(f"USE {dbname};")
                 """
+                dbname=decode_string(str(db_encode))
+                connection.settings_dict['NAME'] = dbname
                 user = authenticate(request, userloginname=userloginname, password=password)
                 
                 if user is None:
-                    return Response({'status': 400, 'message': 'Invalid Password', 'data': {}})
+                    return Response({'message': 'Invalid User or Password', 'data': {}}, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     if user.icompanyid == icompanyid:
                         refresh = RefreshToken.for_user(user)
-                        return Response({'refresh': str(refresh), 'access': str(refresh.access_token)})
+                        return Response({'refresh': str(refresh), 'access': str(refresh.access_token), "message": "Success", "data":{"userloginname":userloginname}},status=status.HTTP_200_OK)
                     else:
-                        return Response({'status': 400, 'message': 'icompanyid not matched ...', 'data': serializer.errors})
-            return Response({'status': 400, 'message': 'Something went wrong', 'data': serializer.errors})
+                        return Response({'message': 'icompanyid not matched ...', 'data': {}}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Something went wrong', 'data': serializer.errors},status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(e)
+            error_message = f"Failed to Post login : {str(e)}"
+            raise APIException(detail=error_message, code=500)
+        
+
+    @swagger_auto_schema(
+        operation_summary="Fetch financial year details",
+        operation_description="Retrieves financial year details and company profiles.",
+        responses={
+            200: "Success",
+            500: "Internal server error"
+        }
+    )
     def get(self, request):
         """
             GET Method
@@ -190,18 +218,16 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
                 cursor.execute("""SELECT path, FinYear FROM admin.finyeardetails;SELECT CompanyName, IcompanyID FROM companyprofile;""")
                 columns1 = [col[0] for col in cursor.description]
                 results1 = cursor.fetchall()
-                # cursor.nextset()
-                # columns2 = [col[0] for col in cursor.description]
-                # results2 = cursor.fetchall()
-                data = {
-                    # 'finyear_details': [{columns1[i]: encode_string(str(value)) for i, value in enumerate(row)} for row in results1],
-                    'finyear_details': [{columns1[i]: encode_string(str(value)) if columns1[i] == 'path' else str(value) for i, value in enumerate(row)} for row in results1],
-                    # 'company_profile': [{columns2[i]: str(value) for i, value in enumerate(row)} for row in results2]
-                    # 'company_profile': [dict(zip(columns2, row)) for row in results2]
-                }
-                return Response(data)
+                finyear_details = [{columns1[i]: encode_string(str(value)) if columns1[i] == 'path' else str(value) for i, value in enumerate(row)} for row in results1]
+                return Response({
+                    "message": "Success",
+                    "data": {"finyear_details": finyear_details}
+                },status=status.HTTP_200_OK)
         except Exception as e:
-            raise APIException('Something went wrong!')
+            error_message = f"Something went wrong: {str(e)}"
+            raise APIException(detail=error_message, code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 
 class GetDataView(APIView):
@@ -211,19 +237,50 @@ class GetDataView(APIView):
     """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        operation_summary="Test of JWT Auth",
+        operation_description="response in message if the user is authenticated and send the Token with header.",
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        }
+    )
     def get(self, request):
         # Your logic to fetch data goes here
         data = {"message": "This is protected data"}
-        return Response(data)
+        return Response(data, status=status.HTTP_200_OK)
 
 class Dashboard(APIView):
     """
-    Dashboard view accessible only to authenticated users.
-    """
+        Dashboard View
 
+        This view provides access to the dashboard for authenticated users.
+
+        Authentication:
+        - Requires JWT token authentication.
+
+        Permissions:
+        - Requires the user to be authenticated.
+
+        Methods:
+        - GET: Fetches user information for the authenticated user.
+
+        Returns:
+        - Response: A JSON response containing user information.
+    """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Fetch user information",
+        operation_description="Retrieves user information for the authenticated user.",
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        }
+    )
 
     def get(self, request):
         """
@@ -232,69 +289,38 @@ class Dashboard(APIView):
         Returns:
             Response: A JSON response containing user information.
         """
-        user = request.user
-
         try:
-            user_data = CustomUser.objects.get(userloginname=user.userloginname)
-        except CustomUser.DoesNotExist:
-            return Response({"error": "User does not exist."}, status=404)
-        serializer = CustomUserSerializer(user_data)
-        
-        return Response(serializer.data)
+            user = request.user
+            userloginname=user.userloginname
+            modules = AppModule.objects.filter(is_active=True)  # Filter out inactive modules
+            app_urls = {module.name: module.url for module in modules}
 
-
-class GetIcompanyId(APIView):
-    """
-    API endpoint to retrieve company names and IDs.
-
-    This endpoint dynamically switches the database connection based on the provided database name,
-    retrieves the company names and IDs from the 'companyprofile' table, and returns the data.
-
-    Parameters:
-        - db_encode (str): The encoded database name.
-
-    Returns:
-        - company_profile (list of dict): List of dictionaries containing company names and IDs.
-    """
-    def post(self, request):
-        data = request.data
-        dbname=decode_string(str(data.get('db_encode')))
-        connection.settings_dict['NAME'] = dbname
-        """
-        dbname=decode_string(str(db_encode))
-        for db_key, db_config in connections.databases.items():
-            if db_config['NAME'] == dbname:
-                dbname = db_key
-                break
-
-        # Now use it ...
-        #  
-        if dbname:
-            # Dynamically switch the database connection
-            with connections[dbname].cursor() as cursor:
-                cursor.execute(f"USE {dbname};")
-        """
-        try:
-            if dbname:
-                with connection.cursor() as cursor:
-                    cursor.execute("""SELECT CompanyName,IcompanyID FROM companyprofile;""")
-                    columns1 = [col[0] for col in cursor.description]
-                    results1 = cursor.fetchall()
-
-                    data = {
-                        'company_profile': [dict(zip(columns1, row)) for row in results1]
-                    }
-                    return Response(data)
+            # modules={"modules": 
+            #         [
+            #             "Quotation Management",
+            #             "Work Order",
+            #             "Stock Location",
+            #             "Order Management",
+            #             "Production Planning",
+            #             "Quality Control (QC)",
+            #             "Quality Assurance (QA)",
+            #             "Dispatch",
+            #             "Eway bill",
+            #             "Purchase",
+            #             "Inventory",
+            #             "Tallyposting",
+            #             "Prerequisites",
+            #             "Plate Management"
+            #         ]}
+            return Response({"message": "Success",'data': app_urls}, status=status.HTTP_200_OK)
+            
         except Exception as e:
-            raise APIException(str(e))
-
-
+            error_message = f"Failed to fetch user information: {str(e)}"
+            return JsonResponse({"statusCode": status.HTTP_500_INTERNAL_SERVER_ERROR, "message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def apipage(request):
     friends=['API Accounts Server Running ...']
     return JsonResponse(friends,safe=False)
-
-
 
 class ForgotPasswordOTPView(APIView):
     """
@@ -351,11 +377,11 @@ class ForgotPasswordOTPView(APIView):
 
         subject = 'OTP to Reset Password'
         message = render_to_string('settingapp_forgotpassword_otp.html',
-                                   {'otp_code': otp_code, 'first_name': user.first_name.capitalize(),
-                                    'last_name': user.last_name.capitalize()})
+                                   {'otp_code': otp_code, 'first_name': user.username.capitalize(),
+                                    'last_name': user.username.capitalize()})
 
         try:
-            # zeptomail_send_email(subject, content=message, from_email="", to_email=[email])
+            sendgrid_send_mail(subject, content=message, from_email="shailendra.tiwari@infovision.com", to_email=email)
 
             otp.code = otp_code
             otp.save()
@@ -435,14 +461,116 @@ class VerifyForgotPasswordOTPView(APIView):
         # OTP is valid
         otp.expired = True
         otp.save()
-        token = RefreshToken.for_user(user)
+        refresh = RefreshToken.for_user(user)
+        return Response({'refresh': str(refresh), 'access': str(refresh.access_token), "message": "OTP verification successful", "data":{'first_name': user.first_name, 'last_name': user.last_name, 'email': user.email,"userloginname":user.userloginname}},status=status.HTTP_200_OK)
 
-        return Response(
-            {'first_name': user.first_name, 'last_name': user.last_name, 'email': user.email, 'token': token,
-             'msg': 'OTP verification successful'},
-            status=status.HTTP_200_OK)
         
 
 
+class UpdatePasswordView(APIView):
+    """
+    View to update a user's password.
 
+    This endpoint allows you to update a user's password. The new password should meet complexity requirements
+    and match the confirmation password.
+
+    :param email: User's email.
+    :param new_password: New password.
+    :param confirm_new_password: Confirmation of the new password.
+    """
+
+    @swagger_auto_schema(
+        operation_summary="Update User Password.",
+        operation_description="Update User Password.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, description='User email'),
+                'new_password': openapi.Schema(type=openapi.TYPE_STRING, description='New password'),
+                'confirm_new_password': openapi.Schema(type=openapi.TYPE_STRING, description='Confirm new password')
+            },
+            required=['email', 'new_password', 'confirm_new_password']
+        ),
+        responses={
+            200: 'Password updated successfully',
+            400: 'Password change failed: New password does not meet complexity requirements or passwords do not match.',
+            401: 'Unauthorized: Invalid access token',
+            404: 'Not Found.',
+            500: 'Failed to reset the password. Please try again later.'
+        }
+    )
+    @csrf_exempt
+    def post(self, request, format=None):
+        sentry_sdk.capture_message("UpdatePasswordView")
+        email = request.data.get('email')
+
+        if not email:
+            return Response({'error': 'Email ID is mandatory to be entered. Please enter the email ID'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        new_password = request.data.get('new_password')
+        confirm_new_password = request.data.get('confirm_new_password')
+
+        # Check if new password and confirm new password match
+        if new_password != confirm_new_password:
+            return Response({'error': 'Passwords do not match. Please recheck the passwords entered'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        custom_password_validator = CustomPasswordValidator()
+
+        try:
+            # Use the custom password validator
+            custom_password_validator.validate(new_password)
+        except ValidationError as e:
+            sentry_sdk.capture_exception(e)
+            error_messages = ', '.join(e)
+            return Response({'error': f'Password does not meet the strong password criteria. Please recheck the '
+                                      f'criteria: {error_messages}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({
+                'error': 'Email ID entered by you is not registered with us. Please contact our support team for assistance.'},
+                status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            subject = 'Your password has been successfully reset'
+            message = render_to_string('settingapp_reset_successful.html',
+                                       {'first_name': user.first_name.capitalize(), 'last_name': user.last_name.capitalize()})
+            
+            sendgrid_send_mail(subject=subject, content=message, from_email="shailendra.tiwari@infovision.com", to_email=[email])
+            
+            user.password = make_password(new_password)
+            user.save()
+            return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            error_message = f"Failed to reset the password. Please try after sometime.. Exception: {str(e)}"
+            return Response({'error': error_message}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+
+class CustomPasswordValidator:
+    def __init__(self, min_length=12):
+        self.min_length = min_length
+
+    def validate(self, password, user=None):
+        if len(password) < self.min_length:
+            raise ValidationError(
+                "The password must be at least {} characters long.".format(self.min_length))
+        if not any(char.isupper() for char in password):
+            raise ValidationError(
+                "The password must contain at least one uppercase letter.")
+        if not any(char.islower() for char in password):
+            raise ValidationError(
+                "The password must contain at least one lowercase letter.")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            raise ValidationError(
+                "The password must contain at least one special character.")
+
+    def get_help_text(self):
+        return ("Your password must be at least {} characters long and include at least one uppercase letter, "
+                "one lowercase letter, and one special character.").format(
+            self.min_length)
 
