@@ -11,7 +11,7 @@ from django.contrib.auth import authenticate
 from django.db import connection, connections
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .models import CustomUser
+from .models import AppModule, CustomUser
 from rest_framework import status
 
 from drf_yasg import openapi
@@ -284,26 +284,28 @@ class Dashboard(APIView):
         try:
             user = request.user
             userloginname=user.userloginname
-            modules={"modules": 
-                    [
-                        "Quotation Management",
-                        "Work Order",
-                        "Stock Location",
-                        "Order Management",
-                        "Production Planning",
-                        "Quality Control (QC)",
-                        "Quality Assurance (QA)",
-                        "Dispatch",
-                        "Eway bill",
-                        "Purchase",
-                        "Inventory",
-                        "Tallyposting",
-                        "Prerequisites",
-                        "Plate Management"
-                    ]}
-            
-            return JsonResponse({"message": "Success", "data": modules}, status=status.HTTP_200_OK)
+            modules = AppModule.objects.filter(is_active=True)  # Filter out inactive modules
+            app_urls = {module.name: module.url for module in modules}
 
+            # modules={"modules": 
+            #         [
+            #             "Quotation Management",
+            #             "Work Order",
+            #             "Stock Location",
+            #             "Order Management",
+            #             "Production Planning",
+            #             "Quality Control (QC)",
+            #             "Quality Assurance (QA)",
+            #             "Dispatch",
+            #             "Eway bill",
+            #             "Purchase",
+            #             "Inventory",
+            #             "Tallyposting",
+            #             "Prerequisites",
+            #             "Plate Management"
+            #         ]}
+            return Response({"message": "Success",'data': app_urls}, status=status.HTTP_200_OK)
+            
         except Exception as e:
             error_message = f"Failed to fetch user information: {str(e)}"
             return JsonResponse({"statusCode": status.HTTP_500_INTERNAL_SERVER_ERROR, "message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

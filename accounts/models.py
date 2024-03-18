@@ -77,5 +77,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
 
+class AppModule(models.Model):
+    name = models.CharField(max_length=100)
+    url = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    # icon = models.ImageField(upload_to='app_icons/', blank=True, null=True) #if you want to use icons for the specific module
+    permissions = models.CharField(max_length=100, blank=True)
+    is_active = models.BooleanField(default=True)
+    ordering = models.IntegerField(default=0)
+    visibility_condition = models.CharField(max_length=200, blank=True)
 
+    def __str__(self):
+        return self.name
 
