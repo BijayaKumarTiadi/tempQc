@@ -76,6 +76,32 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         unique_together = (('id', 'email'),)
     objects = CustomUserManager()
 
+class OTP(models.Model):
+    objects = None
+    DoesNotExist = None
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(default=timezone.now)
+    expired = models.BooleanField(default=False)
+    resend_attempts = models.PositiveIntegerField(default=0)
+
+    def is_expired(self):
+        # OTP expires in 3 minutes
+        return (timezone.now() - self.created_at).total_seconds() > 180
+
+    def can_resend(self):
+        # Allow a maximum of 2 resend attempts
+        return self.resend_attempts < 2
+
+    def resend_otp(self):
+        if self.can_resend() and not self.expired:
+            self.resend_attempts += 1
+            self.save()
+            return True
+        return False
+
+    def __str__(self):
+        return f'OTP for {self.email}'
 
 class AppModule(models.Model):
     name = models.CharField(max_length=100)

@@ -5,17 +5,25 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
 from .serializers import  LoginSerializer
 from django.contrib.auth import authenticate
 from django.db import connection, connections
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .models import AppModule, CustomUser
-from rest_framework import status
-
-from drf_yasg import openapi
+from .models import AppModule,CustomUser,OTP
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from django.views.decorators.csrf import csrf_exempt
+import sentry_sdk
+from django.template.loader import render_to_string
+import random
+import re
+import uuid
+from rest_framework import status
+from accounts.utils.sendgrid_mail import *
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password, check_password
 #Private methods
 
 from .encodedDbs import encode_string,decode_string
@@ -313,4 +321,256 @@ class Dashboard(APIView):
 def apipage(request):
     friends=['API Accounts Server Running ...']
     return JsonResponse(friends,safe=False)
+
+class ForgotPasswordOTPView(APIView):
+    """
+    View to send the OTP For Forget Password via email and update it in the database.
+    This endpoint allows you to send the latest OTP via email and update it in the database.
+
+    :param email: Recipient's email address.
+    """
+
+    @swagger_auto_schema(
+        operation_summary="OTP for forgot or reset password.",
+        operation_description="OTP for forgot or reset password.",
+        manual_parameters=[openapi.Parameter('email', openapi.IN_QUERY, description="Recipient's email address",
+                                             type=openapi.TYPE_STRING)],
+        responses={
+            200: 'OTP sent successfully',
+            400: 'Bad Request - Email is required or no OTP exists for the email',
+            500: 'Internal Server Error - Failed to send OTP via email',
+        }
+    )
+    @csrf_exempt
+    def post(self, request, format=None):
+        """
+        Send the latest OTP via email and update it in the database.
+
+        :param request: The HTTP request object.
+        :param format: The format of the response (e.g., JSON).
+        :return: Returns a success message if the latest OTP is sent and updated successfully.
+                 Returns an error message if no OTP exists for the email or if any issues occur.
+        """
+        sentry_sdk.capture_message("ForgotPasswordOTPView")
+        email = request.query_params.get('email')
+
+        if not email:
+            return Response({'error': 'Email ID is mandatory to be entered. Please enter the email ID.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the email exists in the User table
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({
+                'error': 'Email ID entered by you is not registered with us. Please contact our support team for assistance.'},
+                status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            otp = OTP.objects.filter(
+                email=email, expired=False).latest('created_at')
+        except OTP.DoesNotExist:
+            otp_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            otp = OTP(email=email, code=otp_code)
+        # Generate a new 6-digit OTP
+        otp_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+        subject = 'OTP to Reset Password'
+        message = render_to_string('settingapp_forgotpassword_otp.html',
+                                   {'otp_code': otp_code, 'first_name': user.username.capitalize(),
+                                    'last_name': user.username.capitalize()})
+
+        try:
+            sendgrid_send_mail(subject, content=message, from_email="shailendra.tiwari@infovision.com", to_email=email)
+
+            otp.code = otp_code
+            otp.save()
+            return Response({'message': 'OTP sent successfully.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            error_message = f"Failed to send the OTP via email. Please try after sometime."
+            return Response({'error': error_message}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class VerifyForgotPasswordOTPView(APIView):
+    """
+    View to verify the OTP code for password reset.
+
+    This endpoint allows you to verify the OTP code provided by the user for password reset.
+    If the OTP is valid and not expired, it is marked as expired, and the verification is successful.
+
+    :param email: The user's email for which OTP is being verified.
+    :param otp_code: The OTP code provided by the user.
+    """
+
+    @swagger_auto_schema(
+        operation_summary="Verify the Forget/Reset Password OTP Code.",
+        operation_description="Verify the Forget/Reset Password OTP Code.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, description="User's email"),
+                'otp_code': openapi.Schema(type=openapi.TYPE_STRING, description="OTP code"),
+            },
+            required=['email', 'otp_code']
+        ),
+        responses={
+            200: 'OTP verification successful',
+            400: 'Invalid OTP code or OTP has expired',
+        }
+    )
+    @csrf_exempt
+    def post(self, request, format=None):
+        """
+        Verify the OTP code provided by the user for password reset.
+
+        :param request: The HTTP request object.
+        :param format: The format of the response (e.g., JSON).
+        :return: Returns a success message if OTP verification is successful.
+                 Returns an error message if the OTP is invalid or has expired.
+        """
+        sentry_sdk.capture_message("VerifyForgotPasswordOTPView")
+        email = request.data.get('email')
+        otp_code = request.data.get('otp_code')
+
+        if not email:
+            return Response({'error': 'Email ID is mandatory to be entered. Please enter the email ID.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if not otp_code:
+            return Response({'error': 'OTP is mandatory to be entered. Please enter the OTP.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({
+                'error': 'Email ID entered by you is not registered with us. Please contact our support team for assistance.'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            otp = OTP.objects.get(email=email, code=otp_code, expired=False)
+        except OTP.DoesNotExist:
+            return Response({'error': 'Invalid OTP. Please enter a valid OTP sent to your email.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if otp.is_expired():
+            return Response({'error': 'OTP has expired. Please use Resend OTP to send a new OTP.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # OTP is valid
+        otp.expired = True
+        otp.save()
+        refresh = RefreshToken.for_user(user)
+        return Response({'refresh': str(refresh), 'access': str(refresh.access_token), "message": "OTP verification successful", "data":{'first_name': user.first_name, 'last_name': user.last_name, 'email': user.email,"userloginname":user.userloginname}},status=status.HTTP_200_OK)
+
+        
+
+
+class UpdatePasswordView(APIView):
+    """
+    View to update a user's password.
+
+    This endpoint allows you to update a user's password. The new password should meet complexity requirements
+    and match the confirmation password.
+
+    :param email: User's email.
+    :param new_password: New password.
+    :param confirm_new_password: Confirmation of the new password.
+    """
+
+    @swagger_auto_schema(
+        operation_summary="Update User Password.",
+        operation_description="Update User Password.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, description='User email'),
+                'new_password': openapi.Schema(type=openapi.TYPE_STRING, description='New password'),
+                'confirm_new_password': openapi.Schema(type=openapi.TYPE_STRING, description='Confirm new password')
+            },
+            required=['email', 'new_password', 'confirm_new_password']
+        ),
+        responses={
+            200: 'Password updated successfully',
+            400: 'Password change failed: New password does not meet complexity requirements or passwords do not match.',
+            401: 'Unauthorized: Invalid access token',
+            404: 'Not Found.',
+            500: 'Failed to reset the password. Please try again later.'
+        }
+    )
+    @csrf_exempt
+    def post(self, request, format=None):
+        sentry_sdk.capture_message("UpdatePasswordView")
+        email = request.data.get('email')
+
+        if not email:
+            return Response({'error': 'Email ID is mandatory to be entered. Please enter the email ID'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        new_password = request.data.get('new_password')
+        confirm_new_password = request.data.get('confirm_new_password')
+
+        # Check if new password and confirm new password match
+        if new_password != confirm_new_password:
+            return Response({'error': 'Passwords do not match. Please recheck the passwords entered'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        custom_password_validator = CustomPasswordValidator()
+
+        try:
+            # Use the custom password validator
+            custom_password_validator.validate(new_password)
+        except ValidationError as e:
+            sentry_sdk.capture_exception(e)
+            error_messages = ', '.join(e)
+            return Response({'error': f'Password does not meet the strong password criteria. Please recheck the '
+                                      f'criteria: {error_messages}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({
+                'error': 'Email ID entered by you is not registered with us. Please contact our support team for assistance.'},
+                status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            subject = 'Your password has been successfully reset'
+            message = render_to_string('settingapp_reset_successful.html',
+                                       {'first_name': user.first_name.capitalize(), 'last_name': user.last_name.capitalize()})
+            
+            sendgrid_send_mail(subject=subject, content=message, from_email="shailendra.tiwari@infovision.com", to_email=[email])
+            
+            user.password = make_password(new_password)
+            user.save()
+            return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            error_message = f"Failed to reset the password. Please try after sometime.. Exception: {str(e)}"
+            return Response({'error': error_message}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+
+class CustomPasswordValidator:
+    def __init__(self, min_length=12):
+        self.min_length = min_length
+
+    def validate(self, password, user=None):
+        if len(password) < self.min_length:
+            raise ValidationError(
+                "The password must be at least {} characters long.".format(self.min_length))
+        if not any(char.isupper() for char in password):
+            raise ValidationError(
+                "The password must contain at least one uppercase letter.")
+        if not any(char.islower() for char in password):
+            raise ValidationError(
+                "The password must contain at least one lowercase letter.")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            raise ValidationError(
+                "The password must contain at least one special character.")
+
+    def get_help_text(self):
+        return ("Your password must be at least {} characters long and include at least one uppercase letter, "
+                "one lowercase letter, and one special character.").format(
+            self.min_length)
 
