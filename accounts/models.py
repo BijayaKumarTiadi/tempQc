@@ -2,6 +2,8 @@ from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.hashers import make_password, check_password
+from imagekit.models import ProcessedImageField
+from django.utils.html import format_html
 # Create your models here.
 
 
@@ -111,13 +113,16 @@ class AppModule(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
     url = models.SlugField(max_length=100, unique=True,blank=True)
     description = models.TextField(blank=True)
-    # icon = models.ImageField(upload_to='module_icons/', blank=True, null=True) #if you want to use icons for the specific module
+    image = ProcessedImageField(upload_to='module_icons/',format='JPEG',options={'quality': 40}, null=True)#if you want to use icons for the specific module
     is_active = models.BooleanField(default=True)
     sort = models.IntegerField(default=0)
-
     def __str__(self):
         return self.name
     class Meta:
         ordering=['-sort']
+    # def image_tag(self):
+    #     return format_html(
+    #         '<img src="/media/{}" style="width:40px;height:40px;border-radius:50%;"  />'.format(self.image))
+
     
 

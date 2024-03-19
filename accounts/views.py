@@ -19,12 +19,12 @@ import sentry_sdk
 from django.template.loader import render_to_string
 import random
 import re
-import uuid
 from rest_framework import status
 from accounts.utils.sendgrid_mail import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 import os
+from rest_framework_simplejwt.tokens import RefreshToken, OutstandingToken
 #Private methods
 
 from .encodedDbs import encode_string,decode_string
@@ -253,72 +253,6 @@ class GetDataView(APIView):
         data = {"message": "This is protected data"}
         return Response(data, status=status.HTTP_200_OK)
 
-class Dashboard(APIView):
-    """
-        Dashboard View
-
-        This view provides access to the dashboard for authenticated users.
-
-        Authentication:
-        - Requires JWT token authentication.
-
-        Permissions:
-        - Requires the user to be authenticated.
-
-        Methods:
-        - GET: Fetches user information for the authenticated user.
-
-        Returns:
-        - Response: A JSON response containing user information.
-    """
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(
-        operation_summary="Fetch user information",
-        operation_description="Retrieves user information for the authenticated user.",
-        responses={
-            200: "Success",
-            401: "Unauthorized",
-            500: "Internal server error"
-        }
-    )
-
-    def get(self, request):
-        """
-        Get user information for the authenticated user.
-
-        Returns:
-            Response: A JSON response containing user information.
-        """
-        try:
-            user = request.user
-            userloginname=user.userloginname
-            modules = AppModule.objects.filter(is_active=True)  # Filter out inactive modules
-            app_urls = {module.name: module.url for module in modules}
-
-            # modules={"modules": 
-            #         [
-            #             "Quotation Management",
-            #             "Work Order",
-            #             "Stock Location",
-            #             "Order Management",
-            #             "Production Planning",
-            #             "Quality Control (QC)",
-            #             "Quality Assurance (QA)",
-            #             "Dispatch",
-            #             "Eway bill",
-            #             "Purchase",
-            #             "Inventory",
-            #             "Tallyposting",
-            #             "Prerequisites",
-            #             "Plate Management"
-            #         ]}
-            return Response({"message": "Success",'data': app_urls}, status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            error_message = f"Failed to fetch user information: {str(e)}"
-            return JsonResponse({"statusCode": status.HTTP_500_INTERNAL_SERVER_ERROR, "message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def apipage(request):
     friends=['API Accounts Server Running ...']
@@ -468,7 +402,6 @@ class VerifyForgotPasswordOTPView(APIView):
 
         
 
-
 class UpdatePasswordView(APIView):
     """
     View to update a user's password.
@@ -576,3 +509,63 @@ class CustomPasswordValidator:
                 "one lowercase letter, and one special character.").format(
             self.min_length)
 
+class Dashboard(APIView):
+    """
+        Dashboard View
+
+        This view provides access to the dashboard for authenticated users.
+
+        Authentication:
+        - Requires JWT token authentication.
+
+        Permissions:
+        - Requires the user to be authenticated.
+
+        Methods:
+        - GET: Fetches user information for the authenticated user.
+
+        Returns:
+        - Response: A JSON response containing user information.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Fetch user information",
+        operation_description="Retrieves user information for the authenticated user.",
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        }
+    )
+
+    def get(self, request):
+        """
+        Get user information for the authenticated user.
+
+        Returns:
+            Response: A JSON response containing user information.
+        """
+        try:
+            user = request.user
+            userloginname=user.userloginname
+            # modules = AppModule.objects.filter(is_active=True)  # Filter out inactive modules
+            # app_urls = {module.name: module.url for module in modules}
+            modules = AppModule.objects.filter(is_active=True)
+            # urls = [{'name': module.name, 'url': module.url} for module in modules]
+            module_data = [{
+                        'name': module.name,
+                        'url': module.url,
+                        'description': module.description,
+                        'image_url': module.image.url if module.image else None,
+                        'is_active': module.is_active,
+                        'sort': module.sort
+                    } for module in modules]
+            
+            return Response({"message": "Success","data": {"modules": module_data}},status=status.HTTP_200_OK)
+        except Exception as e:
+            error_message = f"Failed to fetch user information: {str(e)}"
+            return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        

@@ -8,6 +8,6 @@ from estimation.views import EstimationHome
 
 urlpatterns = [
     #Required 
-    path('estimation', EstimationHome.as_view(), name='estimation'),
+    path('', EstimationHome.as_view(), name='estimation'),
 ]
 
