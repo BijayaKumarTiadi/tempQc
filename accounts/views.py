@@ -60,8 +60,12 @@ class GetIcompanyId(APIView):
     )
     def post(self, request):
         data = request.data
-        dbname=decode_string(str(data.get('db_encode')))
-        connection.settings_dict['NAME'] = dbname
+        try:
+            dbname=decode_string(str(data.get('db_encode')))
+            connection.settings_dict['NAME'] = dbname
+        except Exception as e:
+            error_message = f"The Database Name Invalid : {str(e)}"
+            return JsonResponse({ "error": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         """
         dbname=decode_string(str(db_encode))
         for db_key, db_config in connections.databases.items():
@@ -90,8 +94,7 @@ class GetIcompanyId(APIView):
                     return Response({"message": "Success","data": {"company_profile": company_profile}},status=status.HTTP_200_OK)
         except Exception as e:
             error_message = f"Failed to retrieve company names and IDs: {str(e)}"
-            raise APIException(detail=error_message, code=500)
-
+            return JsonResponse({ "error": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class LoginApi(APIView):#user authentication using 2 method whichh needs encrypted password for security
@@ -226,8 +229,6 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
         except Exception as e:
             error_message = f"Something went wrong: {str(e)}"
             raise APIException(detail=error_message, code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 
 class GetDataView(APIView):

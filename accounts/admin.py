@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser,AppModule
+from .models import CustomUser,AppModule,OTP
 # Register your models here.
 
 @admin.register(CustomUser)
@@ -15,3 +15,11 @@ class AppModuleAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description', 'url')
 
 admin.site.register(AppModule, AppModuleAdmin)
+
+
+class OTPAdmin(admin.ModelAdmin):
+    list_display = ('email',)
+    # list_filter = ('is_active',)
+    # search_fields = ('name', 'description', 'url')
+
+admin.site.register(OTP, OTPAdmin)

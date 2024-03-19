@@ -1,6 +1,7 @@
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.hashers import make_password, check_password
 # Create your models here.
 
 
@@ -13,17 +14,15 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('The userloginname field must be set')
         
         user = self.model(userloginname=userloginname, **extra_fields)
-        user.set_password(password)
+        if password:
+            user.password = make_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, userloginname, password=None, **extra_fields):
-        # Ensure the user has the superuser status and any other necessary attributes
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-
         return self.create_user(userloginname, password, **extra_fields)
-    
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     id = models.CharField(db_column='UserID', primary_key=True, max_length=10)  # Field name made lowercase.
@@ -69,12 +68,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         This is used for the JWT which is required only model.id in our case we have only userid
         """
         return str(self.id)
-
+    objects = CustomUserManager()
     class Meta:
         managed = False
         db_table = 'usermaster'
         unique_together = (('id', 'email'),)
-    objects = CustomUserManager()
+
+    def save(self, *args, **kwargs):
+        # Hash the password if it's set and the user is being created
+        if self.password:
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
 
 class OTP(models.Model):
     objects = None
@@ -104,15 +108,16 @@ class OTP(models.Model):
         return f'OTP for {self.email}'
 
 class AppModule(models.Model):
-    name = models.CharField(max_length=100)
-    url = models.CharField(max_length=200)
+    name = models.CharField(max_length=100, primary_key=True)
+    url = models.SlugField(max_length=100, unique=True,blank=True)
     description = models.TextField(blank=True)
-    # icon = models.ImageField(upload_to='app_icons/', blank=True, null=True) #if you want to use icons for the specific module
-    permissions = models.CharField(max_length=100, blank=True)
+    # icon = models.ImageField(upload_to='module_icons/', blank=True, null=True) #if you want to use icons for the specific module
     is_active = models.BooleanField(default=True)
-    ordering = models.IntegerField(default=0)
-    visibility_condition = models.CharField(max_length=200, blank=True)
+    sort = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
+    class Meta:
+        ordering=['-sort']
+    
 

@@ -22,7 +22,7 @@ urlpatterns = [
 
     #Login and Get Server
     path('', apipage, name='apipage'),
-    path('login/geticomany', GetIcompanyId.as_view(), name='geticomany'),
+    path('login/geticompany', GetIcompanyId.as_view(), name='geticompany'),
     path('login', LoginApi.as_view(), name='login'),
     
     
