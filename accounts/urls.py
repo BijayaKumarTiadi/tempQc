@@ -3,7 +3,6 @@ from django.urls import path
 from .views import *
 
 # Working Imports
-from .views import Dashboard
 from rest_framework_simplejwt.views import TokenRefreshView
 from drf_yasg.utils import swagger_auto_schema
 
@@ -36,7 +35,6 @@ urlpatterns = [
 
     #After Login - Home Page API
     path('login/dashboard', Dashboard.as_view(), name='dashboard'),
-
 
 
 ]

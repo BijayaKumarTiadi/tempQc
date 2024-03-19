@@ -213,3 +213,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),  # Set access token expiration time
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     # Set refresh token expiration time
 }
+
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
