@@ -24,10 +24,14 @@ from accounts.utils.sendgrid_mail import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework_simplejwt.tokens import RefreshToken, OutstandingToken
+from .permissions import ViewByStaffOnlyPermission
 #Private methods
 
 from .encodedDbs import encode_string,decode_string
 
+
+
+        
 
 
 class GetIcompanyId(APIView):
@@ -56,7 +60,8 @@ class GetIcompanyId(APIView):
         responses={
             200: "Successful retrieval of company names and IDs",
             500: "Internal server error"
-        }
+        },
+        tags=['Login to SmartMIS']
     )
     def post(self, request):
         data = request.data
@@ -139,7 +144,8 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
             200: "Authentication successful",
             400: "Invalid user or password",
             500: "Internal server error"
-        }
+        },
+        tags=['Login to SmartMIS']
     )
     def post(self, request):
         """
@@ -205,7 +211,8 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
         responses={
             200: "Success",
             500: "Internal server error"
-        }
+        },
+        tags=['Login to SmartMIS']
     )
     def get(self, request):
         """
@@ -241,11 +248,22 @@ class GetDataView(APIView):
     @swagger_auto_schema(
         operation_summary="Test of JWT Auth",
         operation_description="response in message if the user is authenticated and send the Token with header.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
         responses={
             200: "Success",
             401: "Unauthorized",
             500: "Internal server error"
-        }
+        },
+        tags=['Login to SmartMIS']
     )
     def get(self, request):
         # Your logic to fetch data goes here
@@ -274,7 +292,8 @@ class ForgotPasswordOTPView(APIView):
             200: 'OTP sent successfully',
             400: 'Bad Request - Email is required or no OTP exists for the email',
             500: 'Internal Server Error - Failed to send OTP via email',
-        }
+        },
+        tags=['Login to SmartMIS']
     )
     @csrf_exempt
     def post(self, request, format=None):
@@ -352,7 +371,8 @@ class VerifyForgotPasswordOTPView(APIView):
         responses={
             200: 'OTP verification successful',
             400: 'Invalid OTP code or OTP has expired',
-        }
+        },
+        tags=['Login to SmartMIS']
     )
     @csrf_exempt
     def post(self, request, format=None):
@@ -412,6 +432,8 @@ class UpdatePasswordView(APIView):
     :param new_password: New password.
     :param confirm_new_password: Confirmation of the new password.
     """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_summary="Update User Password.",
@@ -425,13 +447,24 @@ class UpdatePasswordView(APIView):
             },
             required=['email', 'new_password', 'confirm_new_password']
         ),
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
         responses={
             200: 'Password updated successfully',
             400: 'Password change failed: New password does not meet complexity requirements or passwords do not match.',
             401: 'Unauthorized: Invalid access token',
             404: 'Not Found.',
             500: 'Failed to reset the password. Please try again later.'
-        }
+        },
+        tags=['Login to SmartMIS']
     )
     @csrf_exempt
     def post(self, request, format=None):
@@ -527,17 +560,31 @@ class Dashboard(APIView):
         - Response: A JSON response containing user information.
     """
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
+    #This is the basic permission with the user master table ,  we can add more like that with customization
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
         operation_summary="Fetch user information",
         operation_description="Retrieves user information for the authenticated user.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
         responses={
             200: "Success",
             401: "Unauthorized",
             500: "Internal server error"
-        }
+        },
+        tags=['Login to SmartMIS']
     )
+    
 
     def get(self, request):
         """
@@ -567,4 +614,7 @@ class Dashboard(APIView):
             error_message = f"Failed to fetch user information: {str(e)}"
             return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+
+
+
         

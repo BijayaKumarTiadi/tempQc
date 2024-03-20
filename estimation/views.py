@@ -15,25 +15,35 @@ from drf_yasg.utils import swagger_auto_schema
 from estimation.models import EstItemtypemaster
 from estimation.serializers import EstItemtypemasterSerializer
 # Create your views here.
+from .permissions import ViewByStaffOnlyPermission
 
 
 class EstimationHome(APIView):
     """
     EstimationHome view accessible only to authenticated users.
     """
-    
-
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
     @swagger_auto_schema(
-            operation_summary="Estimation App",
-            operation_description="Retrieves type of cartonss information for the authenticated user.",
-            responses={
-                200: "Success",
-                401: "Unauthorized",
-                500: "Internal server error"
-            }
-        )
+        operation_summary="Estimation App",
+        operation_description="Retrieves type of cartons information for the authenticated user.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        },
+        tags=['Estimation']
+    )
     
 
     def get(self, request):

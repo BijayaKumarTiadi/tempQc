@@ -218,3 +218,11 @@ SIMPLE_JWT = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+
+
+# Include this in the each Application  for Customize Django Admin View
+# ADMIN_SITE_HEADER = "Renuka Softech Admin"
+# ADMIN_SITE_TITLE = "SmartMIS Admin Panel"
+# ADMIN_INDEX_TITLE = "Welcome to SmartMIS Admin"

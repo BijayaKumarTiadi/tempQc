@@ -15,7 +15,8 @@ urlpatterns = [
              methods=['post'],  # Specify the method(s) for which the schema applies
              operation_summary="Refresh access token",
              operation_description="Refreshes the access token by exchanging a valid refresh token.",
-             responses={200: "Success", 401: "Unauthorized"}
+             responses={200: "Success", 401: "Unauthorized"},
+        tags=['Login to SmartMIS']
          )(TokenRefreshView.as_view()), 
          name='token_refresh'),
 
