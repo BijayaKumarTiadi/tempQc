@@ -197,7 +197,7 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
                 else:
                     if user.icompanyid == icompanyid:
                         refresh = RefreshToken.for_user(user)
-                        return Response({'refresh': str(refresh), 'access': str(refresh.access_token), "message": "Success", "data":{"userloginname":userloginname}},status=status.HTTP_200_OK)
+                        return Response({ "message": "Success", "data":{"userloginname":userloginname, 'refresh': str(refresh), 'access': str(refresh.access_token)}},status=status.HTTP_200_OK)
                     else:
                         return Response({'message': 'icompanyid not matched ...', 'data': {}}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'message': 'Something went wrong', 'data': serializer.errors},status=status.HTTP_400_BAD_REQUEST)
@@ -418,7 +418,7 @@ class VerifyForgotPasswordOTPView(APIView):
         otp.expired = True
         otp.save()
         refresh = RefreshToken.for_user(user)
-        return Response({'refresh': str(refresh), 'access': str(refresh.access_token), "message": "OTP verification successful", "data":{'first_name': user.first_name, 'last_name': user.last_name, 'email': user.email,"userloginname":user.userloginname}},status=status.HTTP_200_OK)
+        return Response({ "message": "OTP verification successful", "data":{'first_name': user.first_name, 'last_name': user.last_name, 'email': user.email,"userloginname":user.userloginname,'refresh': str(refresh), 'access': str(refresh.access_token)}},status=status.HTTP_200_OK)
 
         
 
