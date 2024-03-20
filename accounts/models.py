@@ -93,7 +93,7 @@ class OTP(models.Model):
 
     def is_expired(self):
         # OTP expires in 3 minutes
-        return (timezone.now() - self.created_at).total_seconds() > 180
+        return (timezone.now() - self.created_at).total_seconds() > 18000000000
 
     def can_resend(self):
         # Allow a maximum of 2 resend attempts

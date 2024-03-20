@@ -23,13 +23,14 @@ from rest_framework import status
 from accounts.utils.sendgrid_mail import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
+import os
 from rest_framework_simplejwt.tokens import RefreshToken, OutstandingToken
 from .permissions import ViewByStaffOnlyPermission
 #Private methods
 
 from .encodedDbs import encode_string,decode_string
 
-
+SENDGRID_EMAIL = os.environ.get('SENDGRID_EMAIL')
 
         
 
@@ -335,7 +336,7 @@ class ForgotPasswordOTPView(APIView):
                                     'last_name': user.username.capitalize()})
 
         try:
-            sendgrid_send_mail(subject, content=message, from_email="shailendra.tiwari@infovision.com", to_email=email)
+            sendgrid_send_mail(subject, content=message, from_email=SENDGRID_EMAIL, to_email=email)
 
             otp.code = otp_code
             otp.save()
@@ -506,7 +507,7 @@ class UpdatePasswordView(APIView):
             message = render_to_string('settingapp_reset_successful.html',
                                        {'first_name': user.first_name.capitalize(), 'last_name': user.last_name.capitalize()})
             
-            sendgrid_send_mail(subject=subject, content=message, from_email="shailendra.tiwari@infovision.com", to_email=[email])
+            sendgrid_send_mail(subject=subject, content=message, from_email=SENDGRID_EMAIL, to_email=[email])
             
             user.password = make_password(new_password)
             user.save()
