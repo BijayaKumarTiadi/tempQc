@@ -8,7 +8,7 @@ class EstItemtypemaster(models.Model):
     # imgpath = models.CharField(db_column='ImgPath', max_length=200, blank=True, null=True)  # Field name made lowercase.
     imgpath = ProcessedImageField(upload_to='estimation/itemtypemaster/',format='JPEG',options={'quality': 40}, null=True)#if you want to use icons for the specific module
     ecma_code = models.CharField(db_column='ECMA_Code', max_length=50, blank=True, null=True)  # Field name made lowercase.
-
+    hover_imgpath = ProcessedImageField(upload_to='estimation/itemtypemaster_hover/',format='JPEG',options={'quality': 40}, null=True)
     class Meta:
         managed = False
         db_table = 'est_itemtypemaster'
@@ -33,6 +33,7 @@ class EstItemtypedetail(models.Model):
     cellheight = models.FloatField(db_column='CellHeight', blank=True, null=True)  # Field name made lowercase.
     cellwidth = models.FloatField(db_column='CellWidth', blank=True, null=True)  # Field name made lowercase.
     imgpath = ProcessedImageField(upload_to='estimation/itemtypedetails/',format='JPEG',options={'quality': 40}, null=True)#if you want to use icons for the specific module
+    
     #ALTER TABLE est_itemtypedetail ADD COLUMN ImgPath VARCHAR(200); this is added manually.
 
     class Meta:

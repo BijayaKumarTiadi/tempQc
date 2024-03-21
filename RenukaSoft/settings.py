@@ -219,8 +219,10 @@ SIMPLE_JWT = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
-
+# Disable "Django Login" page when trying to access swagger api in browser.
+# SWAGGER_SETTINGS = {
+#    'USE_SESSION_AUTH': False
+# }
 
 # Include this in the each Application  for Customize Django Admin View
 # ADMIN_SITE_HEADER = "Renuka Softech Admin"

@@ -7,8 +7,9 @@ class EstItemtypedetailSerializer(serializers.ModelSerializer):
         fields = ['label_name', 'default_value']
 
 class EstItemtypemasterSerializer(serializers.ModelSerializer):
-    itemtypedetail_set = EstItemtypedetailSerializer(many=True, read_only=True)
+    # itemtypedetail_set = EstItemtypedetailSerializer(many=True, read_only=True)
+    #You can enable this and add the var in the fields to get the itemtype details in the api response 
     
     class Meta:
         model = EstItemtypemaster
-        fields = ['id', 'internalCartonType', 'CartonType', 'ecma_code', 'imgpath', 'itemtypedetail_set']
+        fields = ['id', 'internalCartonType', 'CartonType', 'ecma_code', 'imgpath','hover_imgpath']
