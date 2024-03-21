@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import EstItemtypemaster, EstItemtypedetail
+from .models import EstItemtypemaster, EstItemtypedetail, Papermasterfull
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,3 +13,11 @@ class EstItemtypemasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = EstItemtypemaster
         fields = ['id', 'internalCartonType', 'CartonType', 'ecma_code', 'imgpath','hover_imgpath']
+
+
+
+
+class PaperMasterFullSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Papermasterfull
+        fields = '__all__'
