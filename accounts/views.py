@@ -5,11 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException
-from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
 from .serializers import  LoginSerializer
 from django.contrib.auth import authenticate
 from django.db import connection, connections
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from .models import AppModule,CustomUser,OTP
 from drf_yasg.utils import swagger_auto_schema
@@ -24,7 +22,12 @@ from accounts.utils.sendgrid_mail import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 import os
+
+#simple JWT
+from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken, OutstandingToken
+
 from .permissions import ViewByStaffOnlyPermission
 #Private methods
 
@@ -471,11 +474,25 @@ class UpdatePasswordView(APIView):
     def post(self, request, format=None):
         sentry_sdk.capture_message("UpdatePasswordView")
         email = request.data.get('email')
-
         if not email:
             return Response({'error': 'Email ID is mandatory to be entered. Please enter the email ID'},
                             status=status.HTTP_400_BAD_REQUEST)
+        #: Add the email validation that the requested user email is same as the user logged in .
+        try:
+            header = request.headers.get('Authorization')
+            parts = header.split()
+            access_token = parts[1]
+            access_token = AccessToken(access_token)
+            user_id = access_token['user_id']
+            user = CustomUser.objects.get(id=user_id)
+            user_email= user.email
+            if user_email != email:
+                return Response({'error': 'The email address you provided does not match the one associated with your account. Please ensure that you have entered the correct email address or contact the administrator for assistance. '},
+                            status=status.HTTP_400_BAD_REQUEST)
 
+        except Exception as e:
+            error_message = f"Failed to fetch user information for email validation : {str(e)}"
+            return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         new_password = request.data.get('new_password')
         confirm_new_password = request.data.get('confirm_new_password')
 
@@ -509,7 +526,7 @@ class UpdatePasswordView(APIView):
             
             sendgrid_send_mail(subject=subject, content=message, from_email=SENDGRID_EMAIL, to_email=[email])
             
-            user.password = make_password(new_password)
+            user.password =new_password# make_password(new_password) - dont user this because we already used this in the model.
             user.save()
             return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
         except Exception as e:
