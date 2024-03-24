@@ -39,11 +39,18 @@ List the prerequisites for running your project. Include the Python version, dep
 Example `requirements.txt`:
 
 ```plaintext
-Django==3.2.19
+﻿Django==3.2.19
 django-cors-headers==4.3.1
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
+drf-yasg==1.21.7
 mysqlclient==2.2.4
+drf-yasg==1.21.7
+python-dotenv==1.0.1
+sendgrid==6.11.0
+sentry-sdk==1.42.0
+django-imagekit==5.0.0
+setuptools==57.4.0
 ```
 
 
