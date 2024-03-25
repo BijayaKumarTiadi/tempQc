@@ -39,7 +39,7 @@ List the prerequisites for running your project. Include the Python version, dep
 Example `requirements.txt`:
 
 ```plaintext
-﻿Django==3.2.19
+Django==3.2.19
 django-cors-headers==4.3.1
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
