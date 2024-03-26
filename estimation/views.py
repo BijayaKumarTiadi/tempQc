@@ -264,6 +264,12 @@ class EstProcessInputDetailList(APIView):
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
+            elif item.input_label_name == "Style":
+                serialized_data = self.process_style(serializer, prid)
+                if prid in prid_data:
+                    prid_data[prid].append(serialized_data)
+                else:
+                    prid_data[prid] = [serialized_data]
 
                     
             # elif:pass -  add the more label names in it.
@@ -273,13 +279,15 @@ class EstProcessInputDetailList(APIView):
                     prid_data[prid].append(serializer.data)
                 else:
                     prid_data[prid] = [serializer.data]
+        for key in prid_data:
+            prid_data[key] = [prid_data[key]]
         return prid_data
     
     def process_complexcity(self, serializer, prid):
         cursor = connection.cursor()
         cursor.execute("SELECT ID, Name AS Complexcity FROM est_jobcomplexity WHERE PrID = %s AND IsActive = 1 ORDER BY Isdefault ASC", [prid])
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"complexcity": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()    
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -288,7 +296,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT a.LamID,CONCAT(a.FilmType,' ',a.Micron, ' Micron') AS FilmType FROM lammetpetmaster AS a;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"filmtype": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -297,7 +305,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT  ID,`Description`  FROM est_front_back AS a ORDER BY description DESC ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"front_or_back": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -306,7 +314,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT  CoatingID,Description  FROM coating_master AS a WHERE isactive = 1 ORDER BY description ASC ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Type": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -315,7 +323,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT  a.ID,Description  FROM est_coating_kind AS a  ORDER BY SeqNo ASC ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Kind": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -324,7 +332,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT  a.FoilID,a.Foiltype  FROM foilmaster AS a ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Foil Film": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list        
@@ -333,7 +341,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT  a.FoilID,a.Foiltype  FROM foilmaster AS a ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Lamination Film": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -342,7 +350,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT a.ID,a.Description   FROM est_lam_kind AS a ORDER BY SeqNo ASC ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Lamination Type": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list        
@@ -351,7 +359,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT a.TypeID,Typedescription   FROM item_embosetype_master AS a WHERE Isactive = 1 ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Embose Type": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -360,7 +368,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT a.PastingID,a.Narration   FROM pastingmaster AS a WHERE Inuse = 1 ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Pasting Type": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -369,7 +377,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT WPatchID,CONCAT(FilmType,' ',Micron,' Micron')   FROM winpatchingmaster AS a WHERE IsActive = 1 ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Wimdow Film": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -378,7 +386,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT LinerID,CONCAT(LinerDesc,' ',ROUND(LinerGsm ,0),' GSM')   FROM linermaster AS a WHERE IsActive = 1;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Liner": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -387,7 +395,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT DISTINCT CorrPaperID , (CONCAT(CorrPaperType,' ', CorrGSM,' GSM ', FLOOR(BurstFactor),' BF')) FROM `corrpapermaster` ;")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Kgraft": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
@@ -396,7 +404,7 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT CostID,PName  FROM extracostmaster WHERE CostCretria = 'C';")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Process Name": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list  
@@ -405,7 +413,16 @@ class EstProcessInputDetailList(APIView):
         cursor = connection.cursor()
         cursor.execute("SELECT CostID,PName  FROM extracostmaster WHERE CostCretria = 'C';")
         dropdown_data = cursor.fetchall()
-        dropdown_list = [{"Gumming_Taping": row[1], "value": row[0]} for row in dropdown_data]
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
+        cursor.close()
+        serialized_data = serializer.data
+        serialized_data['dropdown_list'] = dropdown_list
+        return serialized_data
+    def process_style(self, serializer, prid):
+        cursor = connection.cursor()
+        cursor.execute("SELECT a.SortID,a.Narration  FROM sortingmasternew AS a WHERE inuse = 1 ;")
+        dropdown_data = cursor.fetchall()
+        dropdown_list = [{"label": row[1], "value": row[0]} for row in dropdown_data]
         cursor.close()
         serialized_data = serializer.data
         serialized_data['dropdown_list'] = dropdown_list
