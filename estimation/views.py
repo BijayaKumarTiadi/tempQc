@@ -279,8 +279,9 @@ class EstProcessInputDetailList(APIView):
                     prid_data[prid].append(serializer.data)
                 else:
                     prid_data[prid] = [serializer.data]
-        for key in prid_data:
-            prid_data[key] = [prid_data[key]]
+        # for key in prid_data:
+        #     prid_data[key] = [prid_data[key]]
+        prid_data = {key: [value] for key, value in prid_data.items()}
         return prid_data
     
     def process_complexcity(self, serializer, prid):
