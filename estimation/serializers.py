@@ -32,3 +32,13 @@ class InputDetailSerializer(serializers.ModelSerializer):
         model = EstProcessInputDetail 
         # fields = '__all__'
         fields = ['id', 'prid', 'sp_process_no', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value', 'seqno', 'isactive', 'dropdown_list']
+
+
+
+class ProcessInputSerializer(serializers.Serializer):
+    quantity = serializers.ListField(child=serializers.DictField())
+    dimensions = serializers.ListField(child=serializers.DictField())
+    board_menufac = serializers.CharField()
+    board_type = serializers.CharField()
+    gsm = serializers.CharField()
+    processes = serializers.ListField(child=serializers.ListField(child=serializers.ListField(child=serializers.DictField())))

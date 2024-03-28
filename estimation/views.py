@@ -20,6 +20,7 @@ from estimation.models import EstProcessInputDetail
 #serializers imports
 from estimation.serializers import EstItemtypemasterSerializer
 from estimation.serializers import InputDetailSerializer
+from estimation.serializers import  ProcessInputSerializer
 
 
 class EstimationHome(APIView):
@@ -444,3 +445,92 @@ class EstProcessInputDetailList(APIView):
             #only add it when you added the same in the serializer
             serialized_data[response_name] = dropdown_list        
         return serialized_data
+    
+
+class ProcessInputView(APIView):
+    """
+    View to process input data from the frontend.
+
+    This endpoint allows you to process input data received from the frontend.
+    The input data should include quantity, dimensions, board_menufac, gsm, and processes.
+
+    :param quantity: List of dictionaries containing quantity data.
+    :param dimensions: List of dictionaries containing dimensions data.
+    :param board_menufac: Board manufacturing details.
+    :param board_type: Type of board.
+    :param gsm: GSM (grams per square meter) of the board.
+    :param processes: List of lists containing process details.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Process Input Data.",
+        operation_description="Process input data received from the frontend.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'quantity': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'quantity': openapi.Schema(type=openapi.TYPE_STRING)})
+                ),
+                'dimensions': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'label_name': openapi.Schema(type=openapi.TYPE_STRING, description='Dimension label name'),
+                            'default_value': openapi.Schema(type=openapi.TYPE_STRING, description='Default dimension value')
+                        }
+                    )
+                ),
+                'board_menufac': openapi.Schema(type=openapi.TYPE_STRING, description='Board manufacturing details'),
+                'board_type': openapi.Schema(type=openapi.TYPE_STRING, description='Type of board'),
+                'gsm': openapi.Schema(type=openapi.TYPE_STRING, description='GSM of the board'),
+                'processes': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Process ID'),
+                                'prid': openapi.Schema(type=openapi.TYPE_STRING, description='PR ID'),
+                                'sp_process_no': openapi.Schema(type=openapi.TYPE_INTEGER, description='Special process number'),
+                                'input_default_value': openapi.Schema(type=openapi.TYPE_STRING, description='Input default value')
+                            }
+                        )
+                    )
+                )
+            },
+            required=['quantity', 'dimensions', 'board_menufac', 'board_type', 'gsm', 'processes']
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: 'Data processed successfully',
+            400: 'Invalid input data',
+            401: 'Unauthorized: Invalid access token',
+            404: 'Not Found',
+            500: 'Failed to process the data. Please try again later.'
+        },
+        tags=['Estimation']
+    )
+    def post(self, request):
+        serializer = ProcessInputSerializer(data=request.data)
+        if serializer.is_valid():
+            processed_data = serializer.validated_data
+            quantity_data = processed_data.get('quantity')
+            board_menufac_data = processed_data.get('board_menufac')
+            return Response({"message": "Data processed successfully", "data": processed_data}, status=status.HTTP_200_OK)
+        else:
+            # Return an error response if the input data is invalid
+            return Response({"message": "Invalid input data", "errors": serializer.errors,'data':{}}, status=status.HTTP_400_BAD_REQUEST)
