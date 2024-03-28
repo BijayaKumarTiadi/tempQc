@@ -1,6 +1,8 @@
 from rest_framework import serializers
+from django.db import connection
 from .models import EstItemtypemaster, EstItemtypedetail, Papermasterfull
 from .models import  EstProcessInputDetail
+from .models import  FrontendResponse
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,18 +29,30 @@ class PaperMasterFullSerializer(serializers.ModelSerializer):
 
 class InputDetailSerializer(serializers.ModelSerializer):
     dropdown_list = serializers.ListField(child=serializers.DictField(), required=False)
-
+    PrName = serializers.SerializerMethodField()
     class Meta:
         model = EstProcessInputDetail 
         # fields = '__all__'
-        fields = ['id', 'prid', 'sp_process_no', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value', 'seqno', 'isactive', 'dropdown_list']
+        fields = ['id', 'prid', 'sp_process_no', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value', 'seqno', 'isactive', 'dropdown_list','Unique_Name','PrName']
+    def get_PrName(self, obj):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT PrName FROM item_processname AS a WHERE a.PrID = %s", [obj.prid])
+                row = cursor.fetchone()
+                return row[0] if row else None
+        except Exception:
+            return None
 
 
 
-class ProcessInputSerializer(serializers.Serializer):
-    quantity = serializers.ListField(child=serializers.DictField())
-    dimensions = serializers.ListField(child=serializers.DictField())
-    board_menufac = serializers.CharField()
-    board_type = serializers.CharField()
-    gsm = serializers.CharField()
-    processes = serializers.ListField(child=serializers.ListField(child=serializers.ListField(child=serializers.DictField())))
+# class FrontendResponseSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = FrontendResponse
+#         fields = ['json_response', 'created_by', 'updated_by']
+class FrontendResponseSerializer(serializers.ModelSerializer):
+    updated_by = serializers.CharField(required=False)
+    created_by = serializers.CharField(required=False)
+
+    class Meta:
+        model = FrontendResponse
+        fields = ['json_response', 'created_by', 'updated_by']

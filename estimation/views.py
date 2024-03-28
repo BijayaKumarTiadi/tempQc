@@ -17,10 +17,11 @@ from .permissions import ViewByStaffOnlyPermission
 #models imports
 from estimation.models import EstItemtypemaster,Papermasterfull
 from estimation.models import EstProcessInputDetail
+from estimation.models import FrontendResponse
 #serializers imports
 from estimation.serializers import EstItemtypemasterSerializer
 from estimation.serializers import InputDetailSerializer
-from estimation.serializers import  ProcessInputSerializer
+from estimation.serializers import  FrontendResponseSerializer
 
 
 class EstimationHome(APIView):
@@ -452,58 +453,22 @@ class ProcessInputView(APIView):
     View to process input data from the frontend.
 
     This endpoint allows you to process input data received from the frontend.
-    The input data should include quantity, dimensions, board_menufac, gsm, and processes.
+    The input data should include a JSON response from the frontend.
 
-    :param quantity: List of dictionaries containing quantity data.
-    :param dimensions: List of dictionaries containing dimensions data.
-    :param board_menufac: Board manufacturing details.
-    :param board_type: Type of board.
-    :param gsm: GSM (grams per square meter) of the board.
-    :param processes: List of lists containing process details.
+    :param json_response: JSON response received from the frontend.
     """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_summary="Process Input Data.",
-        operation_description="Process input data received from the frontend.",
+        operation_description="saved and updates Process input data received from the frontend.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'quantity': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'quantity': openapi.Schema(type=openapi.TYPE_STRING)})
-                ),
-                'dimensions': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'label_name': openapi.Schema(type=openapi.TYPE_STRING, description='Dimension label name'),
-                            'default_value': openapi.Schema(type=openapi.TYPE_STRING, description='Default dimension value')
-                        }
-                    )
-                ),
-                'board_menufac': openapi.Schema(type=openapi.TYPE_STRING, description='Board manufacturing details'),
-                'board_type': openapi.Schema(type=openapi.TYPE_STRING, description='Type of board'),
-                'gsm': openapi.Schema(type=openapi.TYPE_STRING, description='GSM of the board'),
-                'processes': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(
-                            type=openapi.TYPE_OBJECT,
-                            properties={
-                                'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Process ID'),
-                                'prid': openapi.Schema(type=openapi.TYPE_STRING, description='PR ID'),
-                                'sp_process_no': openapi.Schema(type=openapi.TYPE_INTEGER, description='Special process number'),
-                                'input_default_value': openapi.Schema(type=openapi.TYPE_STRING, description='Input default value')
-                            }
-                        )
-                    )
-                )
+                'json_response': openapi.Schema(type=openapi.TYPE_OBJECT)
             },
-            required=['quantity', 'dimensions', 'board_menufac', 'board_type', 'gsm', 'processes']
+            required=['json_response']
         ),
         manual_parameters=[
             openapi.Parameter(
@@ -525,12 +490,26 @@ class ProcessInputView(APIView):
         tags=['Estimation']
     )
     def post(self, request):
-        serializer = ProcessInputSerializer(data=request.data)
-        if serializer.is_valid():
-            processed_data = serializer.validated_data
-            quantity_data = processed_data.get('quantity')
-            board_menufac_data = processed_data.get('board_menufac')
-            return Response({"message": "Data processed successfully", "data": processed_data}, status=status.HTTP_200_OK)
+        user_name = request.user.username
+        data = request.data
+        # print(data)
+        instance_id = data.get('id')
+        if instance_id:
+            instance = FrontendResponse.objects.get(id=instance_id)
+            serializer = FrontendResponseSerializer(instance, data=data)
         else:
-            # Return an error response if the input data is invalid
-            return Response({"message": "Invalid input data", "errors": serializer.errors,'data':{}}, status=status.HTTP_400_BAD_REQUEST)
+            data['created_by'] = user_name
+            serializer = FrontendResponseSerializer(data=data)
+        if serializer.is_valid():
+            updated_by = user_name
+            serializer.save(updated_by=updated_by)
+            instance_id = serializer.instance.id
+            #The **serializer.data operator is used for unpacking dictionaries in Python. It allows you to merge two dictionaries together, combining their key-value pairs into a single dictionary.
+            response_data = {
+                "message": "Data processed successfully",
+                "data": {**serializer.data, "instance_id": instance_id }}
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "Invalid input data", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+            

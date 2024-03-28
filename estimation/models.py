@@ -1,6 +1,5 @@
 from django.db import models
 from imagekit.models import ProcessedImageField
-
 class EstItemtypemaster(models.Model):
     id = models.AutoField(db_column='ID', primary_key=True)  # Field name made lowercase.
     CartonType = models.CharField(db_column='CartonType', max_length=60)  # Field name made lowercase.
@@ -87,9 +86,21 @@ class EstProcessInputDetail(models.Model):
     input_type = models.CharField(max_length=30, blank=True, null=True)
     input_data_type = models.CharField(max_length=30, blank=True, null=True)
     input_default_value = models.CharField(max_length=10, blank=True, null=True)
+    Unique_Name = models.CharField(max_length=20, blank=True, null=True)
     seqno = models.IntegerField(db_column='SeqNo', blank=True, null=True)  # Field name made lowercase.
     isactive = models.IntegerField(db_column='IsActive', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
         managed = False
         db_table = 'est_process_input_detail'
+
+
+class FrontendResponse(models.Model):
+    json_response = models.JSONField()
+    created_by = models.CharField(max_length=150)  # Assuming 150 characters is sufficient for the login name
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=150)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Response ID: {self.pk}"
