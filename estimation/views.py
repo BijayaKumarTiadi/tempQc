@@ -1,10 +1,11 @@
 from django.shortcuts import render
+from datetime import datetime
 from django.http import HttpResponse,JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
 from django.contrib.auth import authenticate
 from django.db import connection, connections
 from django.db.models import Count
@@ -490,26 +491,115 @@ class ProcessInputView(APIView):
         tags=['Estimation']
     )
     def post(self, request):
-        user_name = request.user.username
+            try:
+                # data = request.data
+                quote_id = self.insert_into_est_new_quote(request)
+                #- > here we will proceed further for the another functions which will save the other parse datas
+                if quote_id:
+                    self.insert_into_est_qty(request,quote_id)
+                return Response({"message": "Data processed successfully", "data": {"quote_id": quote_id} }, status=status.HTTP_200_OK)
+            except Exception as e:
+                error_message = f"Failed to fetch/save Process Input View information: {str(e)}"
+                return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def get_userid(self,request):
+            try:
+                header = request.headers.get('Authorization')
+                parts = header.split()
+                access_token = parts[1]
+                access_token = AccessToken(access_token)
+                user_id = access_token['user_id']
+                return user_id
+            except Exception as e:
+                error_message = f"Failed to fetch user information for user id  : {str(e)}"
+                return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def insert_into_est_new_quote(self, request):
+        """
+        Insert data into the Est_New_quote table.
+
+        This function inserts data into the Est_New_quote table based on the provided request data.
+
+        :param request: The HTTP request object containing the data to be inserted.
+        :type request: HttpRequest
+
+        :return: The ID of the newly inserted record (QuoteID).
+        :rtype: int
+        """
+        auid = self.get_userid(request)
+
         data = request.data
-        # print(data)
-        instance_id = data.get('id')
-        if instance_id:
-            instance = FrontendResponse.objects.get(id=instance_id)
-            serializer = FrontendResponseSerializer(instance, data=data)
-        else:
-            data['created_by'] = user_name
-            serializer = FrontendResponseSerializer(data=data)
-        if serializer.is_valid():
-            updated_by = user_name
-            serializer.save(updated_by=updated_by)
-            instance_id = serializer.instance.id
-            #The **serializer.data operator is used for unpacking dictionaries in Python. It allows you to merge two dictionaries together, combining their key-value pairs into a single dictionary.
-            response_data = {
-                "message": "Data processed successfully",
-                "data": {**serializer.data, "instance_id": instance_id }}
-            return Response(response_data, status=status.HTTP_200_OK)
-        else:
-            return Response({"message": "Invalid input data", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        quote_date  = datetime.now().strftime('%Y-%m-%d')[:10]
+        ADateTime  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        client_id = data.get('ClientID')
+        client_name = data.get('Client_Name')
+        product_name = data.get('Product_Name')
+        product_code = data.get('Product_Code')
+        carton_type_id = data.get('Carton_Type_ID')
+        remarks = data.get('Remarks')
+        order_status = data.get('OrderStatus')
+        is_active = data.get('IsActive')
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO Est_New_quote 
+                (QuoteDate, ClientID, Client_Name, Product_Name, Product_Code, Carton_Type_ID, AUID, Remarks, OrderStatus, IsActive)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, [quote_date, client_id, client_name, product_name, product_code, carton_type_id, auid, remarks, order_status, is_active])
+            quote_id = cursor.lastrowid  # Retrieve the last inserted ID
+            return quote_id
+        '''
+        filtered_data = {
+            'QuoteDate': quote_date,
+            'ClientID': client_id,
+            'Client_Name': client_name,
+            'Product_Name': product_name,
+            'Product_Code': product_code,
+            'Carton_Type_ID': carton_type_id,
+            'AUID': auid,
+            'ADateTime': ADateTime,
+            'Remarks': remarks,
+            'OrderStatus': order_status,
+            'IsActive': is_active
+        }
+        filtered_data = {k: v for k, v in filtered_data.items() if v is not None}
+        with connection.cursor() as cursor:
+            placeholders = ', '.join(['%s'] * len(filtered_data))
+            columns = ', '.join(filtered_data.keys())
+            values = list(filtered_data.values())
             
-            
+            sql = f"""
+                INSERT INTO Est_New_quote 
+                ({columns})
+                VALUES ({placeholders})
+            """
+            cursor.execute(sql, values)
+            quote_id = cursor.lastrowid 
+            return quote_id
+
+    def insert_into_est_qty(self, request, quote_id):
+        """
+        Insert data into the Est_Qty table.
+
+        This function inserts data into the Est_Qty table based on the provided request data and quote_id.
+
+        :param request: The HTTP request object containing the data to be inserted.
+        :type request: HttpRequest
+        :param quote_id: The ID of the quote to associate the quantities with.
+        :type quote_id: int
+
+        :return: None
+        """
+        try:
+            quantities = request.data.get("quantity", [])
+            print(f"Quantities to insert: {quantities}")
+            with connection.cursor() as cursor:
+                for quantity_data in quantities:
+                    qty_req = quantity_data.get("quantity")
+                    print(f"quote_id: {quote_id}, qty_req: {qty_req}")
+                    cursor.execute(""" INSERT INTO Est_Qty (QuoteID, QtyReq) VALUES (%s, %s) ; """, (int(quote_id), int(qty_req)))
+                print("Quantities inserted successfully.")
+        except Exception as e:
+            error_message = f"Failed to insert quantities into Est_Qty table: {str(e)}"
+            print(error_message)
+            #Handle the error appropriately, e.g., logging, returning error response, etc.
+       
