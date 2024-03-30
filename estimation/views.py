@@ -25,6 +25,9 @@ from estimation.serializers import InputDetailSerializer
 from estimation.serializers import  FrontendResponseSerializer
 
 
+#private methods
+from .helpers import process_dropdown_data
+
 class EstimationHome(APIView):
     """
     EstimationHome view accessible only to authenticated users.
@@ -167,7 +170,46 @@ class EstProcessInputDetailList(APIView):
         except Exception as e:
             error_message = f"Failed to fetch paper data: {str(e)}"
             return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    def process_input_details(self, queryset):
+        prid_data = {}
+        for item in queryset:
+            prid = item.prid
+            serializer = InputDetailSerializer(item)
+            query_mapping = {
+                "Complexcity": "SELECT ID, Name AS Complexcity FROM est_jobcomplexity WHERE PrID = %s AND IsActive = 1 ORDER BY Isdefault ASC",
+                "Film Type": "SELECT a.LamID, CONCAT(a.FilmType, ' ', a.Micron, ' Micron') AS FilmType FROM lammetpetmaster AS a;",
+                "Front/Back": "SELECT ID, `Description` FROM est_front_back AS a ORDER BY description DESC;",
+                "Type": "SELECT CoatingID, Description FROM coating_master AS a WHERE isactive = 1 ORDER BY description ASC;",
+                "Kind": "SELECT a.ID, Description FROM est_coating_kind AS a ORDER BY SeqNo ASC;",
+                "Foil Film": "SELECT a.FoilID, a.Foiltype FROM foilmaster AS a;",
+                "Lamination Film": "SELECT a.FoilID, a.Foiltype FROM foilmaster AS a;",
+                "Lamination Type": "SELECT ID, Description FROM est_lam_kind AS a ORDER BY SeqNo ASC;",
+                "Embose Type": "SELECT TypeID, Typedescription FROM item_embosetype_master AS a WHERE Isactive = 1;",
+                "Pasting Type": "SELECT PastingID, Narration FROM pastingmaster AS a WHERE Inuse = 1;",
+                "Window Film": "SELECT WPatchID, CONCAT(FilmType, ' ', Micron, ' Micron') FROM winpatchingmaster AS a WHERE IsActive = 1;",
+                "Liner": "SELECT LinerID, CONCAT(LinerDesc, ' ', ROUND(LinerGsm, 0), ' GSM') FROM linermaster AS a WHERE IsActive = 1;",
+                "Kraft GSM And Kind": "SELECT DISTINCT CorrPaperID, CONCAT(CorrPaperType, ' ', CorrGSM, ' GSM ', FLOOR(BurstFactor), ' BF') FROM corrpapermaster;",
+                "Process Name": "SELECT CostID, PName FROM extracostmaster WHERE CostCretria = 'C';",
+                "Gumming/Taping": "SELECT CostID, PName FROM extracostmaster WHERE CostCretria = 'C';",
+                "Style": "SELECT SortID, Narration FROM sortingmasternew AS a WHERE inuse = 1;"
+                # Add more queries for additional input label names
+            }
+
+            if item.input_label_name in query_mapping:
+                query = query_mapping[item.input_label_name]
+                if item.input_label_name == "Complexcity":
+                    serialized_data = process_dropdown_data(serializer, query, prid)
+                else:
+                    serialized_data = process_dropdown_data(serializer, query)
+                prid_data.setdefault(prid, []).append(serialized_data)
+            else:
+                prid_data.setdefault(prid, []).append(serializer.data)
+
+        # Convert values to lists
+        prid_data = {key: [value] for key, value in prid_data.items()}
+        return prid_data
+    """
+    #use this for optional
     def process_input_details(self, queryset):
         prid_data = {}
         for item in queryset:
@@ -177,98 +219,130 @@ class EstProcessInputDetailList(APIView):
             # Process input details based on input label name
             #We can add only one funtion for all the queries . Just pass the queries in the function.
             if item.input_label_name == "Complexcity":
-
-                serialized_data = self.process_complexcity(serializer, prid)
+                # serialized_data = self.process_complexcity(serializer, prid)
+                query = "SELECT ID, Name AS Complexcity FROM est_jobcomplexity WHERE PrID = %s AND IsActive = 1 ORDER BY Isdefault ASC"
+                params = [prid]
+                serialized_data = process_dropdown_data(serializer,query,params)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Film Type":
-                serialized_data = self.process_filmtype(serializer, prid)
+                # serialized_data = self.process_filmtype(serializer, prid)
+                query = "SELECT a.LamID,CONCAT(a.FilmType,' ',a.Micron, ' Micron') AS FilmType FROM lammetpetmaster AS a;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Front/Back":
-                serialized_data = self.process_Front_or_Back(serializer, prid)
+                # serialized_data = self.process_Front_or_Back(serializer, prid)
+                query = "SELECT  ID,`Description`  FROM est_front_back AS a ORDER BY description DESC ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Type":
-                serialized_data = self.process_Type(serializer, prid)
+                # serialized_data = self.process_Type(serializer, prid)
+                query = "SELECT  CoatingID,Description  FROM coating_master AS a WHERE isactive = 1 ORDER BY description ASC ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Kind":
-                serialized_data = self.process_kind(serializer, prid)
+                # serialized_data = self.process_kind(serializer, prid)
+                query = "SELECT  a.ID,Description  FROM est_coating_kind AS a  ORDER BY SeqNo ASC ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Foil Film":
-                serialized_data = self.process_foilfilm(serializer, prid)
+                # serialized_data = self.process_foilfilm(serializer, prid)
+                query = "SELECT  a.FoilID,a.Foiltype  FROM foilmaster AS a ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Lamination Film":
-                serialized_data = self.process_laminationfilm(serializer, prid)
+                # serialized_data = self.process_laminationfilm(serializer, prid)
+                query = "SELECT  a.FoilID,a.Foiltype  FROM foilmaster AS a ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Lamination Type":
-                serialized_data = self.process_laminationtype(serializer, prid)
+                # serialized_data = self.process_laminationtype(serializer, prid)
+                query = "SELECT a.ID,a.Description   FROM est_lam_kind AS a ORDER BY SeqNo ASC ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Embose Type":
-                serialized_data = self.process_embosetype(serializer, prid)
+                # serialized_data = self.process_embosetype(serializer, prid)
+                query = "SELECT a.TypeID,Typedescription   FROM item_embosetype_master AS a WHERE Isactive = 1 ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Pasting Type":
-                serialized_data = self.process_pastingtype(serializer, prid)
+                # serialized_data = self.process_pastingtype(serializer, prid)
+                query = "SELECT a.PastingID,a.Narration   FROM pastingmaster AS a WHERE Inuse = 1 ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Wimdow Film":
-                serialized_data = self.process_windowfilm(serializer, prid)
+                # serialized_data = self.process_windowfilm(serializer, prid)
+                query = "SELECT WPatchID,CONCAT(FilmType,' ',Micron,' Micron')   FROM winpatchingmaster AS a WHERE IsActive = 1 ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Liner":
-                serialized_data = self.process_liner(serializer, prid)
+                # serialized_data = self.process_liner(serializer, prid)
+                query = "SELECT LinerID,CONCAT(LinerDesc,' ',ROUND(LinerGsm ,0),' GSM')   FROM linermaster AS a WHERE IsActive = 1;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Kraft GSM And Kind":
-                serialized_data = self.process_kraft_gsm_kind(serializer, prid)
+                # serialized_data = self.process_kraft_gsm_kind(serializer, prid)
+                query = "SELECT DISTINCT CorrPaperID , (CONCAT(CorrPaperType,' ', CorrGSM,' GSM ', FLOOR(BurstFactor),' BF')) FROM `corrpapermaster` ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Process Name":
-                serialized_data = self.process_process_name(serializer, prid)
+                # serialized_data = self.process_process_name(serializer, prid)
+                query = "SELECT CostID,PName  FROM extracostmaster WHERE CostCretria = 'C';"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Gumming/Taping":
-                serialized_data = self.process_gumming_taping(serializer, prid)
+                # serialized_data = self.process_gumming_taping(serializer, prid)
+                query = "SELECT CostID,PName  FROM extracostmaster WHERE CostCretria = 'C';"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
                     prid_data[prid] = [serialized_data]
             elif item.input_label_name == "Style":
-                serialized_data = self.process_style(serializer, prid)
+                # serialized_data = self.process_style(serializer, prid)
+                query = "SELECT a.SortID,a.Narration  FROM sortingmasternew AS a WHERE inuse = 1 ;"
+                serialized_data = process_dropdown_data(serializer,query)
                 if prid in prid_data:
                     prid_data[prid].append(serialized_data)
                 else:
@@ -287,6 +361,12 @@ class EstProcessInputDetailList(APIView):
         prid_data = {key: [value] for key, value in prid_data.items()}
         return prid_data
     
+
+
+
+
+
+    #this below functions are not used !
     def process_complexcity(self, serializer, prid):
         cursor = connection.cursor()
         cursor.execute("SELECT ID, Name AS Complexcity FROM est_jobcomplexity WHERE PrID = %s AND IsActive = 1 ORDER BY Isdefault ASC", [prid])
@@ -447,7 +527,9 @@ class EstProcessInputDetailList(APIView):
             #only add it when you added the same in the serializer
             serialized_data[response_name] = dropdown_list        
         return serialized_data
-    
+
+    """
+
 
 class ProcessInputView(APIView):
     """
@@ -603,3 +685,8 @@ class ProcessInputView(APIView):
             print(error_message)
             #Handle the error appropriately, e.g., logging, returning error response, etc.
        
+
+# change the payload json_response or the parsing method
+# add all the tables
+# parse all informations with dynamic like which contains foiling and what if someone not use foiling manage that payload optional
+# Check the cost sheet
