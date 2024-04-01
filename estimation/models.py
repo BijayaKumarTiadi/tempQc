@@ -3,6 +3,7 @@ from imagekit.models import ProcessedImageField
 class EstItemtypemaster(models.Model):
     id = models.AutoField(db_column='ID', primary_key=True)  # Field name made lowercase.
     CartonType = models.CharField(db_column='CartonType', max_length=60)  # Field name made lowercase.
+    carton_cat = models.CharField(db_column='carton_cat', max_length=20)  # Field name made lowercase.
     internalCartonType = models.CharField(db_column='internalCartonType', unique=True, max_length=60)  # Field name made lowercase.
     # imgpath = models.CharField(db_column='ImgPath', max_length=200, blank=True, null=True)  # Field name made lowercase.
     imgpath = ProcessedImageField(upload_to='estimation/itemtypemaster/',format='JPEG',options={'quality': 40}, null=True)#if you want to use icons for the specific module

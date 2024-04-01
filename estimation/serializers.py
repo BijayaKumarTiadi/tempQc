@@ -15,7 +15,7 @@ class EstItemtypemasterSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = EstItemtypemaster
-        fields = ['id', 'internalCartonType', 'CartonType', 'ecma_code', 'imgpath','hover_imgpath','itemtypedetail_set']
+        fields = ['id', 'internalCartonType', 'CartonType', 'ecma_code', 'imgpath','hover_imgpath','carton_cat','itemtypedetail_set']
 
 
 
