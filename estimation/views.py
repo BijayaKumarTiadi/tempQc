@@ -57,8 +57,6 @@ class EstimationHome(APIView):
         },
         tags=['Estimation']
     )
-    
-
     def get(self, request):
         try:
             queryset = EstItemtypemaster.objects.prefetch_related('itemtypedetail_set').all()
