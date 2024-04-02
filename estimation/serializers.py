@@ -56,3 +56,18 @@ class FrontendResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = FrontendResponse
         fields = ['json_response', 'created_by', 'updated_by']
+
+
+
+# Below serializer are for the input from the process input page , total 9 tables 
+class ProcessInputSerializer(serializers.Serializer):
+    # quoteid = serializers.IntegerField() like this if you want to add some optionl or required data
+    grain_direction = serializers.CharField(max_length=1)
+
+    def validate_grain_direction(self, value):
+        """
+        Validate grain direction field.
+        """
+        if value not in ['h', 'v']:
+            raise serializers.ValidationError("Grain direction must be 'h' or 'v'.")
+        return value

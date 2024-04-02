@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException
+from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
 from django.contrib.auth import authenticate
 from django.db import connection, connections
@@ -19,10 +20,16 @@ from .permissions import ViewByStaffOnlyPermission
 from estimation.models import EstItemtypemaster,Papermasterfull
 from estimation.models import EstProcessInputDetail
 from estimation.models import FrontendResponse
+#- save models
+from estimation.models import EstGrainDirection
+
+
+
 #serializers imports
 from estimation.serializers import EstItemtypemasterSerializer
 from estimation.serializers import InputDetailSerializer
 from estimation.serializers import  FrontendResponseSerializer
+from estimation.serializers import  ProcessInputSerializer
 
 
 #private methods
@@ -66,7 +73,6 @@ class EstimationHome(APIView):
             error_message = f"Failed to fetch Estimation information: {str(e)}"
             return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-
 
 class papermaster_boards(APIView):
     """
@@ -115,7 +121,6 @@ class papermaster_boards(APIView):
         except Exception as e:
             error_message = f"Failed to fetch paper data: {str(e)}"
             return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 class EstProcessInputDetailList(APIView):
@@ -909,7 +914,7 @@ class EstProcessInputDetailList(APIView):
 '''
 
 
-class ProcessInputView(APIView):
+class ProcessInputView_notused(APIView):
     """
         Process Input Data.
 
@@ -1171,6 +1176,125 @@ class ProcessInputView(APIView):
         except Exception as e:
             error_message = f"Failed to fetch/save Process Input View information: {str(e)}"
             return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ProcessInputView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    """
+    Process Input Data.
+
+    This endpoint receives input data from the frontend and saves or updates it.
+    """
+
+    @swagger_auto_schema(
+        operation_summary="Process Input Data.",
+        operation_description="Save or update process input data received from the frontend.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'grain_direction': openapi.Schema(type=openapi.TYPE_STRING),
+                'quantity': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'quantity': openapi.Schema(type=openapi.TYPE_STRING),
+                        },
+                        required=['quantity']
+                    )
+                ),
+                'dimensions': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'label_name': openapi.Schema(type=openapi.TYPE_STRING),
+                            'value': openapi.Schema(type=openapi.TYPE_STRING),
+                        },
+                        required=['label_name', 'value']
+                    )
+                ),
+                'board_details': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'board_menufac': openapi.Schema(type=openapi.TYPE_STRING),
+                            'board_type': openapi.Schema(type=openapi.TYPE_STRING),
+                            'gsm': openapi.Schema(type=openapi.TYPE_STRING),
+                        },
+                        required=['board_menufac', 'board_type', 'gsm']
+                    )
+                ),
+                'processes': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'prid': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'sp_process_no': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'value': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'unique_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                },
+                                required=['id', 'prid', 'sp_process_no', 'value', 'unique_name']
+                            )
+                        )
+                    )
+                )
+            },
+            required=['grain_direction', 'quantity', 'dimensions', 'board_details', 'processes']
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: 'Data processed successfully',
+            400: 'Invalid input data',
+            401: 'Unauthorized: Invalid access token',
+            404: 'Not Found',
+            500: 'Failed to process the data. Please try again later.'
+        },
+        tags=['Estimation']
+    )
+    
+    def post(self, request, *args, **kwargs):
+            try:
+                serializer = ProcessInputSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+
+                # Extract validated data
+                validated_data = serializer.validated_data
+                #EstNewQuote 
+
+
+                
+                #grain_direction
+                grain_direction = validated_data.get('grain_direction')
+                quoteid = 124
+                _ = EstGrainDirection.objects.create(grain_direction=grain_direction,quoteid=quoteid)
+
+                # Other processing steps...
+
+                return Response({"message": "Data processed successfully", "data": {"quote_id": quoteid} }, status=status.HTTP_200_OK)
+            except ValidationError as e:
+                error_message = "Invalid input data"
+                return Response({"message": error_message, "errors": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                error_message = f"Failed to fetch/save Process Input View information: {str(e)}"
+                return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # change the payload json_response or the parsing method
 # add all the tables
