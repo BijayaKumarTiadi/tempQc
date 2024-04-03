@@ -166,6 +166,7 @@ class EstBoard(models.Model):
     boardid = models.CharField(db_column='BoardID', max_length=10, blank=True, null=True)  
     board_type = models.CharField(db_column='Board_Type', max_length=10, blank=True, null=True)  
     board_gsm = models.CharField(db_column='Board_GSM', max_length=10, blank=True, null=True)  
+    board_menufac = models.CharField(db_column='board_menufac', max_length=50, blank=True, null=True)  
 
     class Meta:
         managed = False
