@@ -22,6 +22,8 @@ from estimation.models import EstProcessInputDetail
 from estimation.models import FrontendResponse
 #- save models
 from estimation.models import EstGrainDirection
+from estimation.models import EstBoard
+from estimation.models import EstQty
 
 
 
@@ -1196,12 +1198,13 @@ class ProcessInputView(APIView):
                 'quantity': openapi.Schema(
                     type=openapi.TYPE_ARRAY,
                     items=openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'quantity': openapi.Schema(type=openapi.TYPE_STRING),
-                        },
-                        required=['quantity']
-                    )
+                        type=openapi.TYPE_INTEGER,
+                        format=openapi.FORMAT_INT32,
+                        minimum=0,
+                        description='List of quantities'
+                    ),
+                    required=['quantity'],
+                    description='Array of quantities'
                 ),
                 'dimensions': openapi.Schema(
                     type=openapi.TYPE_ARRAY,
@@ -1222,6 +1225,7 @@ class ProcessInputView(APIView):
                             'board_menufac': openapi.Schema(type=openapi.TYPE_STRING),
                             'board_type': openapi.Schema(type=openapi.TYPE_STRING),
                             'gsm': openapi.Schema(type=openapi.TYPE_STRING),
+                            'BoardID': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
                         },
                         required=['board_menufac', 'board_type', 'gsm']
                     )
@@ -1274,18 +1278,41 @@ class ProcessInputView(APIView):
                 serializer = ProcessInputSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
 
+
                 # Extract validated data
                 validated_data = serializer.validated_data
+                print ( validated_data)
                 #EstNewQuote 
 
 
-                
+
                 #grain_direction
                 grain_direction = validated_data.get('grain_direction')
                 quoteid = 124
                 _ = EstGrainDirection.objects.create(grain_direction=grain_direction,quoteid=quoteid)
 
+
+                #board_details
+                board_details = validated_data.get('board_details')
+                # for key in validated json :
+                #     perform looped action # This is for future use .
+                for board_data in board_details:
+                    _ = EstBoard.objects.create(
+                        quoteid=quoteid,
+                        boardid=board_data.get('BoardID'),
+                        board_menufac=board_data.get('board_menufac'),
+                        board_type=board_data.get('board_type'),
+                        board_gsm=board_data.get('gsm'))
+                # End board_details
+
+                # Quantity
+                quantities = validated_data.get('quantity')
+                for qty in quantities:
+                    _= EstQty.objects.create(quoteid=quoteid, qtyreq=qty)
+                # End Quantity
+ 
                 # Other processing steps...
+
 
                 return Response({"message": "Data processed successfully", "data": {"quote_id": quoteid} }, status=status.HTTP_200_OK)
             except ValidationError as e:

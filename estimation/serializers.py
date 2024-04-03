@@ -63,6 +63,8 @@ class FrontendResponseSerializer(serializers.ModelSerializer):
 class ProcessInputSerializer(serializers.Serializer):
     # quoteid = serializers.IntegerField() like this if you want to add some optionl or required data
     grain_direction = serializers.CharField(max_length=1)
+    board_details = serializers.ListField(child=serializers.DictField())
+    quantity = serializers.ListField(child=serializers.IntegerField(min_value=0, required=True))
 
     def validate_grain_direction(self, value):
         """
@@ -70,4 +72,24 @@ class ProcessInputSerializer(serializers.Serializer):
         """
         if value not in ['h', 'v']:
             raise serializers.ValidationError("Grain direction must be 'h' or 'v'.")
+        return value
+    def validate_board_details(self, value):
+        """
+        Validate board details field.
+        """
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Board details must be a list of dictionaries.")
+
+            required_keys = ['board_menufac', 'board_type', 'gsm'] # can add BoardID if its needed  .
+            for key in required_keys:
+                if key not in item:
+                    raise serializers.ValidationError(f"Missing '{key}' in board details.")
+        return value
+    def validate_quantity(self, value):
+        """
+        Validate quantity field.
+        """
+        if not value:
+            raise serializers.ValidationError("Quantity list cannot be empty.")
         return value
