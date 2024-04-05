@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from estimation.views import EstimationHome,papermaster_boards
 from estimation.views import EstProcessInputDetailList
 from estimation.views import ProcessInputView
+from estimation.views import Costsheet
 
 
 
@@ -14,6 +15,7 @@ urlpatterns = [
     path('/boards', papermaster_boards.as_view(), name='papermaster_boards'),
     path('/process', EstProcessInputDetailList.as_view(), name='EstProcessInputDetailList'),
     path('/processinput', ProcessInputView.as_view(), name='ProcessInputView'),
+    path('/costsheet', Costsheet.as_view(), name='Costsheet'),
     # path('/api4', EstimationHome.as_view(), name='estimation'),
     # path('/api6', EstimationHome.as_view(), name='estimation'),
     # path('/api5', EstimationHome.as_view(), name='estimation'),

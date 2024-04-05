@@ -1323,6 +1323,94 @@ class ProcessInputView(APIView):
                 return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class Costsheet(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Process Cost Sheet Data.",
+        operation_description="Executes the RND_CartonPlanning stored procedure with the provided parameters.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'PMachineID': openapi.Schema(type=openapi.TYPE_STRING, description="ID of the machine"),
+                'ItemType': openapi.Schema(type=openapi.TYPE_INTEGER, description="Type of the item"),
+                'GrainStyle': openapi.Schema(type=openapi.TYPE_INTEGER, description="Grain style"),
+                'pF_Color': openapi.Schema(type=openapi.TYPE_INTEGER, description="Front color"),
+                'pB_Color': openapi.Schema(type=openapi.TYPE_INTEGER, description="Back color"),
+                'L': openapi.Schema(type=openapi.TYPE_NUMBER, description="Length"),
+                'B': openapi.Schema(type=openapi.TYPE_NUMBER, description="Breadth"),
+                'HH': openapi.Schema(type=openapi.TYPE_NUMBER, description="Height"),
+                'S': openapi.Schema(type=openapi.TYPE_NUMBER, description="Size"),
+                'TF': openapi.Schema(type=openapi.TYPE_NUMBER, description="Tuck flap"),
+                'Bf': openapi.Schema(type=openapi.TYPE_NUMBER, description="Bottom flap"),
+                't': openapi.Schema(type=openapi.TYPE_NUMBER, description="Thickness"),
+                'LE': openapi.Schema(type=openapi.TYPE_NUMBER, description="Left extension"),
+                'RE': openapi.Schema(type=openapi.TYPE_NUMBER, description="Right extension"),
+                'GutterH': openapi.Schema(type=openapi.TYPE_INTEGER, description="Horizontal gutter"),
+                'GutterV': openapi.Schema(type=openapi.TYPE_INTEGER, description="Vertical gutter"),
+                'P_MarginTop': openapi.Schema(type=openapi.TYPE_INTEGER, description="Top margin"),
+                'P_MarginLeft': openapi.Schema(type=openapi.TYPE_INTEGER, description="Left margin"),
+                'P_MarginRight': openapi.Schema(type=openapi.TYPE_INTEGER, description="Right margin"),
+                'P_Gripper': openapi.Schema(type=openapi.TYPE_INTEGER, description="Gripper"),
+            },
+            required=['PMachineID', 'ItemType', 'GrainStyle', 'pF_Color', 'pB_Color', 'L', 'B', 'HH', 'S', 'TF', 'Bf', 't',
+                      'LE', 'RE', 'GutterH', 'GutterV', 'P_MarginTop', 'P_MarginLeft', 'P_MarginRight', 'P_Gripper']
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: 'Data processed successfully',
+            400: 'Invalid input data',
+            401: 'Unauthorized: Invalid access token',
+            404: 'Not Found',
+            500: 'Failed to process the data. Please try again later.'
+        },
+        tags=['Estimation']
+    )
+    def post(self, request, *args, **kwargs):
+        try:
+            # Extract data from request body
+            PMachineID = request.data.get('PMachineID')
+            ItemType = request.data.get('ItemType')
+            GrainStyle = request.data.get('GrainStyle')
+            pF_Color = request.data.get('pF_Color')
+            pB_Color = request.data.get('pB_Color')
+            L = request.data.get('L')
+            B = request.data.get('B')
+            HH = request.data.get('HH')
+            S = request.data.get('S')
+            TF = request.data.get('TF')
+            Bf = request.data.get('Bf')
+            t = request.data.get('t')
+            LE = request.data.get('LE')
+            RE = request.data.get('RE')
+            GutterH = request.data.get('GutterH')
+            GutterV = request.data.get('GutterV')
+            P_MarginTop = request.data.get('P_MarginTop')
+            P_MarginLeft = request.data.get('P_MarginLeft')
+            P_MarginRight = request.data.get('P_MarginRight')
+            P_Gripper = request.data.get('P_Gripper')
+            #'00002',1,0,4,0,31,31,67,7,10,0,0,0,0,0,0,5,5,5,10
+            # Execute the stored procedure
+            with connection.cursor() as cursor:
+                cursor.callproc('RND_CartonPlanning', [PMachineID, ItemType, GrainStyle, pF_Color, pB_Color, L, B, HH, S, TF, Bf,
+                                                        t, LE, RE, GutterH, GutterV, P_MarginTop, P_MarginLeft, P_MarginRight, P_Gripper])
+                result = cursor.fetchall()
+                #we can get the data from different tables which were modified using the procedure .
+            return Response({"message": "Data processed successfully", "data": {result} }, status=status.HTTP_200_OK)
+        except Exception as e:
+            error_message = f"Failed to process the data: {str(e)}"
+            return Response({"message": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # change the payload json_response or the parsing method
 # add all the tables
 # parse all informations with dynamic like which contains foiling and what if someone not use foiling manage that payload optional
