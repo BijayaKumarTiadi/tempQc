@@ -25,6 +25,13 @@ from estimation.models import EstGrainDirection
 from estimation.models import EstBoard
 from estimation.models import EstQty
 from estimation.models import EstAdvanceInputDetail
+from estimation.models import EstDimensions
+
+from estimation.models import EstPrint
+from estimation.models import EstCoating
+from estimation.models import EstMetpetp
+from estimation.models import EstLamination
+from estimation.models import EstFoiling
 
 
 
@@ -1295,7 +1302,6 @@ class ProcessInputView(APIView):
 
                 # Extract validated data
                 validated_data = serializer.validated_data
-                print ( validated_data)
                 #EstNewQuote 
 
 
@@ -1324,6 +1330,55 @@ class ProcessInputView(APIView):
                 for qty in quantities:
                     _= EstQty.objects.create(quoteid=quoteid, qtyreq=qty)
                 # End Quantity
+
+                # Dimensions
+                dimensions = validated_data.get('dimensions')
+                for dim_data in dimensions:
+                    _ = EstDimensions.objects.create(
+                        quoteid=quoteid,
+                        dimension_id=dim_data.get('label_name'),
+                        dimension_value=dim_data.get('value'))
+                    
+                # End Dimensions
+
+                #processes
+                processes = request.data.get('processes')
+                processes = [item for sublist in processes for item in sublist]
+                for process_list in processes:
+                    for process_data in process_list:
+                        print(process_data)
+                        prid = process_data['prid']  # Assuming prid is the same for all items in the process list
+                        # Depending on the prid, choose the appropriate model
+                        if prid == 'Pr':
+                            model = EstPrint
+                        elif prid == 'FC':
+                            model = EstCoating
+                        elif prid == 'FF':
+                            model = EstFoiling
+                        elif prid == 'FL':
+                            model = EstLamination
+                        
+                        #add other pr ids here only in if .
+                        # elif prid == 'PN':
+                        #     model = EstMetpetp
+
+                        # Add more conditions for other prid values as needed
+
+                        # Create a dictionary to store the values to be inserted
+                        values_to_insert = {'quoteid': quoteid}
+                        for key, value in process_data.items():
+                            if key != 'prid':
+                                values_to_insert[key] = value
+                        print(values_to_insert)
+                        # Insert the data into the respective table
+                        try:
+                            model.objects.create(**values_to_insert)
+                        except Exception as e:
+                            # Handle exceptions (e.g., validation errors)
+                            print(f"Failed to insert data into {model.__name__}: {e}")
+
+
+                # End Processes
  
                 # Other processing steps...
 

@@ -257,3 +257,14 @@ class EstGrainDirection(models.Model):
     class Meta:
         managed = False
         db_table = 'est_grain_direction'
+
+class EstDimensions(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)
+    quoteid = models.IntegerField(db_column='QuoteID')
+    dimension_id = models.CharField(db_column='Dimension_ID',max_length=10)
+    dimension_value = models.FloatField(db_column='Dimension_value')
+
+    class Meta:
+        managed = False
+        db_table = 'Est_Dimensions'
+

@@ -8,16 +8,12 @@
 from django.db import models
 
 
-class EstAdvanceInputDetail(models.Model):
+class EstDimensions(models.Model):
     id = models.AutoField(db_column='ID', primary_key=True)  # Field name made lowercase.
-    unique_name = models.CharField(db_column='Unique_Name', max_length=20)  # Field name made lowercase.
-    input_label_name = models.CharField(max_length=30)
-    input_type = models.CharField(max_length=30, blank=True, null=True)
-    input_data_type = models.CharField(max_length=30, blank=True, null=True)
-    input_default_value = models.CharField(max_length=10, blank=True, null=True)
-    seqno = models.IntegerField(db_column='SeqNo', blank=True, null=True)  # Field name made lowercase.
-    isactive = models.IntegerField(db_column='IsActive', blank=True, null=True)  # Field name made lowercase.
+    quoteid = models.IntegerField(db_column='QuoteID')  # Field name made lowercase.
+    dimension_id = models.IntegerField(db_column='Dimension_ID')  # Field name made lowercase.
+    dimension_value = models.FloatField(db_column='Dimension_value')  # Field name made lowercase.
 
     class Meta:
         managed = False
-        db_table = 'est_advance_input_detail'
+        db_table = 'Est_Dimensions'
