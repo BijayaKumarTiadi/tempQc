@@ -3,6 +3,7 @@ from django.db import connection
 from .models import EstItemtypemaster, EstItemtypedetail, Papermasterfull
 from .models import  EstProcessInputDetail
 from .models import  FrontendResponse
+from .models import  EstAdvanceInputDetail
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,7 +19,11 @@ class EstItemtypemasterSerializer(serializers.ModelSerializer):
         fields = ['id', 'internalCartonType', 'CartonType', 'ecma_code', 'imgpath','hover_imgpath','carton_cat','itemtypedetail_set']
 
 
-
+class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EstAdvanceInputDetail
+        # fields = ['id', 'unique_name', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value', 'seqno', 'isactive']
+        fields = ['id', 'unique_name', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value']
 
 class PaperMasterFullSerializer(serializers.ModelSerializer):
     class Meta:

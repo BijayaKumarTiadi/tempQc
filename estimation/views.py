@@ -24,6 +24,7 @@ from estimation.models import FrontendResponse
 from estimation.models import EstGrainDirection
 from estimation.models import EstBoard
 from estimation.models import EstQty
+from estimation.models import EstAdvanceInputDetail
 
 
 
@@ -32,6 +33,7 @@ from estimation.serializers import EstItemtypemasterSerializer
 from estimation.serializers import InputDetailSerializer
 from estimation.serializers import  FrontendResponseSerializer
 from estimation.serializers import  ProcessInputSerializer
+from estimation.serializers import  EstAdvanceInputDetailSerializer
 
 
 #private methods
@@ -68,9 +70,21 @@ class EstimationHome(APIView):
     )
     def get(self, request):
         try:
+            #Fetch from EstItemtypemaster model
             queryset = EstItemtypemaster.objects.prefetch_related('itemtypedetail_set').all()
             serializer = EstItemtypemasterSerializer(queryset, many=True)
-            return Response({"message": "Success","data": serializer.data},status=status.HTTP_200_OK)
+
+            #fetch from EstAdvanceInputDetail model
+            advance_queryset = EstAdvanceInputDetail.objects.filter(isactive=True).order_by('seqno')
+            advance_serializer = EstAdvanceInputDetailSerializer(advance_queryset, many=True)
+            response_data = {
+                "message": "Success",
+                "data": {
+                    "qm_response": serializer.data,
+                    "advance_response": advance_serializer.data
+                }
+            }
+            return Response(response_data,status=status.HTTP_200_OK)
         except Exception as e:
             error_message = f"Failed to fetch Estimation information: {str(e)}"
             return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1405,8 +1419,10 @@ class Costsheet(APIView):
                 cursor.callproc('RND_CartonPlanning', [PMachineID, ItemType, GrainStyle, pF_Color, pB_Color, L, B, HH, S, TF, Bf,
                                                         t, LE, RE, GutterH, GutterV, P_MarginTop, P_MarginLeft, P_MarginRight, P_Gripper])
                 result = cursor.fetchall()
+                columns = [col[0] for col in cursor.description]
+                data = [{columns[i]: row[i] for i in range(len(columns))} for row in result]
                 #we can get the data from different tables which were modified using the procedure .
-            return Response({"message": "Data processed successfully", "data": {result} }, status=status.HTTP_200_OK)
+            return Response({"message": "Data processed successfully", "data": data }, status=status.HTTP_200_OK)
         except Exception as e:
             error_message = f"Failed to process the data: {str(e)}"
             return Response({"message": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

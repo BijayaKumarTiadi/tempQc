@@ -16,6 +16,21 @@ class EstItemtypemaster(models.Model):
     def __str__(self):
         return self.CartonType
 
+class EstAdvanceInputDetail(models.Model):
+    #this is for the advsance input detailss
+    id = models.AutoField(db_column='ID', primary_key=True)
+    unique_name = models.CharField(db_column='Unique_Name', max_length=20)
+    input_label_name = models.CharField(max_length=30)
+    input_type = models.CharField(max_length=30, blank=True, null=True)
+    input_data_type = models.CharField(max_length=30, blank=True, null=True)
+    input_default_value = models.CharField(max_length=10, blank=True, null=True)
+    seqno = models.IntegerField(db_column='SeqNo', blank=True, null=True)
+    isactive = models.IntegerField(db_column='IsActive', blank=True, null=True) 
+
+    class Meta:
+        managed = False
+        db_table = 'est_advance_input_detail'
+
 
 
 class EstItemtypedetail(models.Model):
