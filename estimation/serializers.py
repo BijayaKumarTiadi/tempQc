@@ -3,6 +3,7 @@ from django.db import connection
 from .models import EstItemtypemaster, EstItemtypedetail, Papermasterfull
 from .models import  EstProcessInputDetail
 from .models import  FrontendResponse
+from .models import  EstAdvanceInputDetail
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,7 +19,11 @@ class EstItemtypemasterSerializer(serializers.ModelSerializer):
         fields = ['id', 'internalCartonType', 'CartonType', 'ecma_code', 'imgpath','hover_imgpath','carton_cat','itemtypedetail_set']
 
 
-
+class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EstAdvanceInputDetail
+        # fields = ['id', 'unique_name', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value', 'seqno', 'isactive']
+        fields = ['id', 'unique_name', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value']
 
 class PaperMasterFullSerializer(serializers.ModelSerializer):
     class Meta:
@@ -65,6 +70,7 @@ class ProcessInputSerializer(serializers.Serializer):
     grain_direction = serializers.CharField(max_length=1)
     board_details = serializers.ListField(child=serializers.DictField())
     quantity = serializers.ListField(child=serializers.IntegerField(min_value=0, required=True))
+    dimensions = serializers.ListField(child=serializers.DictField())
 
     def validate_grain_direction(self, value):
         """
@@ -92,4 +98,14 @@ class ProcessInputSerializer(serializers.Serializer):
         """
         if not value:
             raise serializers.ValidationError("Quantity list cannot be empty.")
+        return value
+    def validate_dimensions(self, value):
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Dimensions must be a list of dictionaries.")
+
+            required_keys = ['label_name', 'value']
+            for key in required_keys:
+                if key not in item:
+                    raise serializers.ValidationError(f"Missing '{key}' in dimensions.")
         return value

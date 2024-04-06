@@ -156,7 +156,6 @@ DATABASES = {
 # }
 
 #python manage.py inspectdb usermaster > models.py to fetch all the tables into model
-
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
