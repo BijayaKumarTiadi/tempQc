@@ -1342,13 +1342,17 @@ class ProcessInputView(APIView):
                 # End Dimensions
 
                 #processes
+                # This data not validated through seriliazer   . 
                 processes = request.data.get('processes')
                 processes = [item for sublist in processes for item in sublist]
                 for process_list in processes:
+                    final_data = {'quoteid': quoteid}
                     for process_data in process_list:
-                        print(process_data)
-                        prid = process_data['prid']  # Assuming prid is the same for all items in the process list
-                        # Depending on the prid, choose the appropriate model
+                        process_data = {key: value for key, value in process_data.items() if key not in ['id', 'prid', 'sp_process_no']}
+                        process_data = {process_data['unique_name'].lower(): process_data['value']}
+                        final_data.update(process_data)
+                    for process_data in process_list:
+                        prid = process_data['prid']
                         if prid == 'Pr':
                             model = EstPrint
                         elif prid == 'FC':
@@ -1357,32 +1361,19 @@ class ProcessInputView(APIView):
                             model = EstFoiling
                         elif prid == 'FL':
                             model = EstLamination
-                        
-                        #add other pr ids here only in if .
-                        # elif prid == 'PN':
-                        #     model = EstMetpetp
-
-                        # Add more conditions for other prid values as needed
-
-                        # Create a dictionary to store the values to be inserted
-                        values_to_insert = {'quoteid': quoteid}
-                        for key, value in process_data.items():
-                            if key != 'prid':
-                                values_to_insert[key] = value
-                        print(values_to_insert)
-                        # Insert the data into the respective table
-                        try:
-                            model.objects.create(**values_to_insert)
-                        except Exception as e:
-                            # Handle exceptions (e.g., validation errors)
-                            print(f"Failed to insert data into {model.__name__}: {e}")
-
-
+                        else:
+                            #remove this - 
+                            model = None
+                        if model !=None :
+                            try:
+                                model.objects.create(**final_data)
+                            except Exception as e:
+                                # Handle exceptions (e.g., validation errors)
+                                print(f"Failed to insert data into {model.__name__}: {e}")
+                    print(final_data)
+                    print("...........\n")
                 # End Processes
- 
-                # Other processing steps...
-
-
+                    
                 return Response({"message": "Data processed successfully", "data": {"quote_id": quoteid} }, status=status.HTTP_200_OK)
             except ValidationError as e:
                 error_message = "Invalid input data"

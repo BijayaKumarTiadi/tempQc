@@ -217,7 +217,7 @@ class EstCoating(models.Model):
     fc_type = models.CharField(db_column='FC_Type', max_length=10, blank=True, null=True)  
     fc_kind = models.CharField(db_column='FC_Kind', max_length=10)  
     fc_area = models.FloatField(db_column='FC_Area')  
-    fb = models.CharField(db_column='FB', max_length=10)  
+    fc_fb = models.CharField(db_column='FB', max_length=10)  
 
     class Meta:
         managed = False
@@ -230,7 +230,7 @@ class EstLamination(models.Model):
     fl_film = models.CharField(db_column='FL_Film', max_length=10, blank=True, null=True)  
     fl_type = models.CharField(db_column='FL_Type', max_length=10)  
     fl_strips = models.IntegerField(db_column='FL_Strips')  
-    fb = models.CharField(db_column='FB', max_length=10)  
+    fl_fb = models.CharField(db_column='FB', max_length=10)  
 
     class Meta:
         managed = False
@@ -243,7 +243,7 @@ class EstFoiling(models.Model):
     ff_film = models.CharField(db_column='FF_Film', max_length=10, blank=True, null=True)  
     ff_l = models.FloatField(db_column='FF_L')  
     ff_b = models.FloatField(db_column='FF_B')  
-    fb = models.CharField(db_column='FB', max_length=10)  
+    ff_fb = models.CharField(db_column='FB', max_length=10)  
 
     class Meta:
         managed = False
