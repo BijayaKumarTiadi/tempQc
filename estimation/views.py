@@ -1373,8 +1373,16 @@ class ProcessInputView(APIView):
                     print(final_data)
                     print("...........\n")
                 # End Processes
+
+                #Fetch the table data
+                response = []
+                with connection.cursor() as cursor:
+                    cursor.callproc('RND_CartonPlanning', ['', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
+                    columns = [col[0] for col in cursor.description]
+                    for row in cursor.fetchall():
+                        response.append({columns[i]: row[i] for i in range(len(columns))})
                     
-                return Response({"message": "Data processed successfully", "data": {"quote_id": quoteid} }, status=status.HTTP_200_OK)
+                return Response({"message": "Data processed successfully", "data": {"quote_id": quoteid ,"cs_response":response} }, status=status.HTTP_200_OK)
             except ValidationError as e:
                 error_message = "Invalid input data"
                 return Response({"message": error_message, "errors": e.detail}, status=status.HTTP_400_BAD_REQUEST)
@@ -1461,9 +1469,9 @@ class Costsheet(APIView):
             P_Gripper = request.data.get('P_Gripper')
             #'00002',1,0,4,0,31,31,67,7,10,0,0,0,0,0,0,5,5,5,10
             # Execute the stored procedure
+            # CALL RND_CartonPlanning('',1,0,4,0,31,31,67,7,10,0,0,0,0,0,0,5,5,5,10);
             with connection.cursor() as cursor:
-                cursor.callproc('RND_CartonPlanning', [PMachineID, ItemType, GrainStyle, pF_Color, pB_Color, L, B, HH, S, TF, Bf,
-                                                        t, LE, RE, GutterH, GutterV, P_MarginTop, P_MarginLeft, P_MarginRight, P_Gripper])
+                cursor.callproc('RND_CartonPlanning', ['', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
                 result = cursor.fetchall()
                 columns = [col[0] for col in cursor.description]
                 data = [{columns[i]: row[i] for i in range(len(columns))} for row in result]
