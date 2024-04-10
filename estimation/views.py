@@ -1402,28 +1402,9 @@ class Costsheet(APIView):
             type=openapi.TYPE_OBJECT,
             properties={
                 'PMachineID': openapi.Schema(type=openapi.TYPE_STRING, description="ID of the machine"),
-                'ItemType': openapi.Schema(type=openapi.TYPE_INTEGER, description="Type of the item"),
-                'GrainStyle': openapi.Schema(type=openapi.TYPE_INTEGER, description="Grain style"),
-                'pF_Color': openapi.Schema(type=openapi.TYPE_INTEGER, description="Front color"),
-                'pB_Color': openapi.Schema(type=openapi.TYPE_INTEGER, description="Back color"),
-                'L': openapi.Schema(type=openapi.TYPE_NUMBER, description="Length"),
-                'B': openapi.Schema(type=openapi.TYPE_NUMBER, description="Breadth"),
-                'HH': openapi.Schema(type=openapi.TYPE_NUMBER, description="Height"),
-                'S': openapi.Schema(type=openapi.TYPE_NUMBER, description="Size"),
-                'TF': openapi.Schema(type=openapi.TYPE_NUMBER, description="Tuck flap"),
-                'Bf': openapi.Schema(type=openapi.TYPE_NUMBER, description="Bottom flap"),
-                't': openapi.Schema(type=openapi.TYPE_NUMBER, description="Thickness"),
-                'LE': openapi.Schema(type=openapi.TYPE_NUMBER, description="Left extension"),
-                'RE': openapi.Schema(type=openapi.TYPE_NUMBER, description="Right extension"),
-                'GutterH': openapi.Schema(type=openapi.TYPE_INTEGER, description="Horizontal gutter"),
-                'GutterV': openapi.Schema(type=openapi.TYPE_INTEGER, description="Vertical gutter"),
-                'P_MarginTop': openapi.Schema(type=openapi.TYPE_INTEGER, description="Top margin"),
-                'P_MarginLeft': openapi.Schema(type=openapi.TYPE_INTEGER, description="Left margin"),
-                'P_MarginRight': openapi.Schema(type=openapi.TYPE_INTEGER, description="Right margin"),
-                'P_Gripper': openapi.Schema(type=openapi.TYPE_INTEGER, description="Gripper"),
+                
             },
-            required=['PMachineID', 'ItemType', 'GrainStyle', 'pF_Color', 'pB_Color', 'L', 'B', 'HH', 'S', 'TF', 'Bf', 't',
-                      'LE', 'RE', 'GutterH', 'GutterV', 'P_MarginTop', 'P_MarginLeft', 'P_MarginRight', 'P_Gripper']
+            required=['PMachineID']
         ),
         manual_parameters=[
             openapi.Parameter(
@@ -1446,36 +1427,13 @@ class Costsheet(APIView):
     )
     def post(self, request, *args, **kwargs):
         try:
-            # Extract data from request body
-            PMachineID = request.data.get('PMachineID')
-            ItemType = request.data.get('ItemType')
-            GrainStyle = request.data.get('GrainStyle')
-            pF_Color = request.data.get('pF_Color')
-            pB_Color = request.data.get('pB_Color')
-            L = request.data.get('L')
-            B = request.data.get('B')
-            HH = request.data.get('HH')
-            S = request.data.get('S')
-            TF = request.data.get('TF')
-            Bf = request.data.get('Bf')
-            t = request.data.get('t')
-            LE = request.data.get('LE')
-            RE = request.data.get('RE')
-            GutterH = request.data.get('GutterH')
-            GutterV = request.data.get('GutterV')
-            P_MarginTop = request.data.get('P_MarginTop')
-            P_MarginLeft = request.data.get('P_MarginLeft')
-            P_MarginRight = request.data.get('P_MarginRight')
-            P_Gripper = request.data.get('P_Gripper')
-            #'00002',1,0,4,0,31,31,67,7,10,0,0,0,0,0,0,5,5,5,10
-            # Execute the stored procedure
-            # CALL RND_CartonPlanning('',1,0,4,0,31,31,67,7,10,0,0,0,0,0,0,5,5,5,10);
             with connection.cursor() as cursor:
-                cursor.callproc('RND_CartonPlanning', ['', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
-                result = cursor.fetchall()
-                columns = [col[0] for col in cursor.description]
-                data = [{columns[i]: row[i] for i in range(len(columns))} for row in result]
-                #we can get the data from different tables which were modified using the procedure .
+                cursor.execute("SELECT * FROM qcsheetex1 WHERE recordID='00001' AND TabNo=0 ORDER BY CAST(field8 AS DECIMAL)")
+                results = cursor.fetchall()  # Fetch all the results
+                columns = [col[0] for col in cursor.description]  # Get column names
+                data = []
+                for row in results:
+                    data.append(dict(zip(columns, row)))  # Create dictionary for each row
             return Response({"message": "Data processed successfully", "data": data }, status=status.HTTP_200_OK)
         except Exception as e:
             error_message = f"Failed to process the data: {str(e)}"
