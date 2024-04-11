@@ -129,36 +129,36 @@ class EstNewQuote(models.Model):
     quotedate = models.CharField(db_column='QuoteDate', max_length=10)  
     quote_no = models.CharField(db_column='Quote_No', max_length=30)  
     icompanyid = models.CharField(db_column='ICompanyID', max_length=10)  
-    clientid = models.CharField(db_column='ClientID', max_length=10)  
-    client_name = models.CharField(db_column='Client_Name', max_length=100)  
-    product_name = models.CharField(db_column='Product_Name', max_length=100)  
-    product_code = models.CharField(db_column='Product_Code', max_length=20)  
-    carton_type_id = models.IntegerField(db_column='Carton_Type_ID')  
+    clientid = models.CharField(db_column='ClientID', max_length=10, blank=True, null=True)  
+    client_name = models.CharField(db_column='Client_Name', max_length=100, blank=True, null=True)  
+    product_name = models.CharField(db_column='Product_Name', max_length=100, blank=True, null=True)  
+    product_code = models.CharField(db_column='Product_Code', max_length=20, blank=True, null=True)  
+    carton_type_id = models.IntegerField(db_column='Carton_Type_ID', blank=True, null=True)  
     auid = models.CharField(db_column='AUID', max_length=10)  
     adatetime = models.DateTimeField(db_column='ADateTime', blank=True, null=True)  
     muid = models.CharField(db_column='MUID', max_length=10, blank=True, null=True)  
     mdatetime = models.DateTimeField(db_column='MDateTime', blank=True, null=True)  
-    remarks = models.CharField(db_column='Remarks', max_length=200)  
-    orderstatus = models.CharField(db_column='OrderStatus', max_length=20)  
-    isactive = models.IntegerField(db_column='IsActive')  
-    finalby = models.CharField(db_column='FinalBy', max_length=10)  
-    enqno = models.CharField(db_column='EnqNo', max_length=10)  
-    docnotion = models.IntegerField(db_column='DocNotion')  
-    estnotion = models.CharField(db_column='EstNotion', max_length=50)  
-    finaldate = models.DateTimeField(db_column='FinalDate')  
-    repid = models.CharField(db_column='RepID', max_length=10)  
-    impexpstatus = models.CharField(db_column='ImpExpStatus', max_length=2)  
-    revquoteno = models.IntegerField(db_column='RevQuoteNo')  
-    grainstyle = models.IntegerField(db_column='GrainStyle')  
-    locationid = models.CharField(db_column='LocationID', max_length=10)  
-    currencyid = models.CharField(db_column='CurrencyID', max_length=10)  
-    currency_factctor = models.FloatField(db_column='Currency_Factctor')  
-    currency_curramt = models.FloatField(db_column='Currency_CurrAmt')  
-    clientcategoryid = models.CharField(db_column='ClientCategoryID', max_length=10)  
-    calculatedrate = models.FloatField(db_column='CalculatedRate')  
-    quoterate = models.FloatField(db_column='QuoteRate')  
-    finalrate = models.FloatField(db_column='FinalRate')  
-    fpid = models.CharField(db_column='FPID', max_length=10)  
+    remarks = models.CharField(db_column='Remarks', max_length=200, blank=True, null=True)  
+    orderstatus = models.CharField(db_column='OrderStatus', max_length=20, blank=True, null=True)  
+    isactive = models.IntegerField(db_column='IsActive', blank=True, null=True)  
+    finalby = models.CharField(db_column='FinalBy', max_length=10, blank=True, null=True)  
+    enqno = models.CharField(db_column='EnqNo', max_length=10, blank=True, null=True)  
+    docnotion = models.IntegerField(db_column='DocNotion', blank=True, null=True)  
+    estnotion = models.CharField(db_column='EstNotion', max_length=50, blank=True, null=True)  
+    finaldate = models.DateTimeField(db_column='FinalDate', blank=True, null=True)  
+    repid = models.CharField(db_column='RepID', max_length=10, blank=True, null=True)  
+    impexpstatus = models.CharField(db_column='ImpExpStatus', max_length=2, blank=True, null=True)  
+    revquoteno = models.IntegerField(db_column='RevQuoteNo', blank=True, null=True)  
+    grainstyle = models.IntegerField(db_column='GrainStyle', blank=True, null=True)  
+    locationid = models.CharField(db_column='LocationID', max_length=10, blank=True, null=True)  
+    currencyid = models.CharField(db_column='CurrencyID', max_length=10, blank=True, null=True)  
+    currency_factctor = models.FloatField(db_column='Currency_Factctor', blank=True, null=True)  
+    currency_curramt = models.FloatField(db_column='Currency_CurrAmt', blank=True, null=True)  
+    clientcategoryid = models.CharField(db_column='ClientCategoryID', max_length=10, blank=True, null=True)  
+    calculatedrate = models.FloatField(db_column='CalculatedRate', blank=True, null=True)  
+    quoterate = models.FloatField(db_column='QuoteRate', blank=True, null=True)  
+    finalrate = models.FloatField(db_column='FinalRate', blank=True, null=True)  
+    fpid = models.CharField(db_column='FPID', max_length=10, blank=True, null=True)  
 
     class Meta:
         managed = False
@@ -267,4 +267,132 @@ class EstDimensions(models.Model):
     class Meta:
         managed = False
         db_table = 'Est_Dimensions'
+
+class EstPunching(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    pn_type = models.CharField(db_column='PN_Type', max_length=10, blank=True, null=True)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_punching'
+
+
+class EstEmbossing(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    em_type = models.CharField(db_column='EM_Type', max_length=10, blank=True, null=True)  
+    em_block_l = models.FloatField(db_column='EM_BLOCK_L')  
+    em_block_b = models.FloatField(db_column='EM_BLOCK_B')  
+    fb = models.CharField(db_column='FB', max_length=10)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_embossing'
+
+
+class EstPasting(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    pa_type = models.CharField(db_column='Pa_Type', max_length=10, blank=True, null=True)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_pasting'
+
+
+class EstWindowPatching(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    wp_film = models.CharField(db_column='WP_Film', max_length=10, blank=True, null=True)  
+    wp_l = models.FloatField(db_column='WP_L')  
+    wp_b = models.FloatField(db_column='WP_B')  
+
+    class Meta:
+        managed = False
+        db_table = 'est_window_patching'
+
+
+class EstLinerBag(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    type_113 = models.CharField(db_column='Type_113', max_length=10, blank=True, null=True)
+    l_113 = models.FloatField(db_column='L_113')
+    b_113 = models.FloatField(db_column='B_113')
+
+    class Meta:
+        managed = False
+        db_table = 'est_liner_bag'
+
+
+class EstCorrugation(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    fm_tot_ply = models.IntegerField(db_column='FM_Tot_Ply', blank=True, null=True)  
+    fm_flute = models.CharField(db_column='FM_Flute', max_length=10)  
+    fm_kraft_det = models.CharField(db_column='FM_KRAFT_Det', max_length=10)  
+    fm_pins = models.CharField(db_column='FM_Pins', max_length=2)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_corrugation'
+
+
+class EstOtherProcess(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    op_process = models.CharField(db_column='OP_Process', max_length=10, blank=True, null=True)  
+    op_qty = models.FloatField(db_column='OP_Qty')  
+    op_rem = models.CharField(db_column='OP_Rem', max_length=100)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_Other_process'
+
+
+class EstOtp(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    op_process_id = models.CharField(db_column='OP_Process_ID', max_length=10, blank=True, null=True)  
+    op_rate = models.FloatField(db_column='OP_Rate')  
+    op_rem = models.CharField(db_column='OP_Rem', max_length=100)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_OTP'
+
+
+class EstFolding(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    fo_cross_fold = models.IntegerField(db_column='FO_Cross_Fold', blank=True, null=True)  
+    fo_verticle_fold = models.IntegerField(db_column='FO_Verticle_Fold')  
+    fo_gum_tape = models.CharField(db_column='FO_GUM_Tape', max_length=10)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_folding'
+
+
+class EstBbp(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    bbp_board = models.CharField(db_column='BBP_Board', max_length=10, blank=True, null=True)  
+    bbp_gsm = models.IntegerField(db_column='BBP_GSM')  
+
+    class Meta:
+        managed = False
+        db_table = 'est_BBP'
+
+
+class EstSorting(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    quoteid = models.IntegerField(db_column='QuoteID')  
+    so_style = models.CharField(db_column='SO_Style', max_length=10, blank=True, null=True)  
+
+    class Meta:
+        managed = False
+        db_table = 'est_sorting'
+
+
 
