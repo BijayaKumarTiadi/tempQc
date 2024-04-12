@@ -3,7 +3,8 @@ from django.db import connection
 from .models import EstItemtypemaster, EstItemtypedetail, Papermasterfull
 from .models import  EstProcessInputDetail
 from .models import  FrontendResponse
-from .models import  EstAdvanceInputDetail
+from .models import  EstAdvanceInputDetail,Companymaster
+from .models import  Currencymaster
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,10 +21,48 @@ class EstItemtypemasterSerializer(serializers.ModelSerializer):
 
 
 class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.unique_name == "Client_Name_Drp":
+            # Fetch all company names and IDs from the CompanyMaster model
+            companies = Companymaster.objects.values('companyname', 'companyid')
+            company_data = [{"company_name": company['companyname'], "company_id": company['companyid']} for company in companies]
+            representation['company_names'] = company_data
+        # You can use this if you want to only  add the Indian Rupees in the currency . * depends upon db .
+        # elif instance.unique_name == "CurrancyID":
+        #     # Fetch currency details from the Currencymaster model
+        #     currency_instance = Currencymaster.objects.first()  # Assuming there is only one currency instance
+        #     currency_details = {
+        #         "CurrencyID": currency_instance.currencyid,
+        #         "CurrencyName": currency_instance.currencyname,
+        #         "CurrencySymbol": currency_instance.currencysymbol
+        #     }
+        #     representation['currency_details'] = currency_details
+        elif instance.unique_name == "CurrancyID":
+            currencies = Currencymaster.objects.all()
+            currency_details = [
+                {
+                    "CurrencyID": currency.currencyid,
+                    "CurrencyName": currency.currencyname,
+                    "CurrencySymbol": currency.currencysymbol
+                }
+                for currency in currencies
+            ]
+            representation['currency_details'] = currency_details
+        return representation
     class Meta:
         model = EstAdvanceInputDetail
         # fields = ['id', 'unique_name', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value', 'seqno', 'isactive']
         fields = ['id', 'unique_name', 'input_label_name', 'input_type', 'input_data_type', 'input_default_value']
+    #below methods is not used . If you want to use it , add the var at the top .
+    # def get_company_id(self, obj):
+    #     company_id = Companymaster.objects.values_list('companyid', flat=True)
+    #     return company_id
+
+    # def get_company_name(self, obj):
+    #     company_name = Companymaster.objects.values_list('companyname', flat=True)
+    #     return company_name
 
 class PaperMasterFullSerializer(serializers.ModelSerializer):
     class Meta:
