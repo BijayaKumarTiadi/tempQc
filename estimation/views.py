@@ -32,6 +32,15 @@ from estimation.models import EstCoating
 from estimation.models import EstMetpetp
 from estimation.models import EstLamination
 from estimation.models import EstFoiling
+from estimation.models import EstLinerBag
+from estimation.models import EstPunching
+from estimation.models import EstEmbossing
+from estimation.models import EstPasting
+from estimation.models import EstWindowPatching
+from estimation.models import EstCorrugation
+from estimation.models import EstFolding
+from estimation.models import EstSorting
+from estimation.models import EstBbp
 
 
 
@@ -1303,12 +1312,15 @@ class ProcessInputView(APIView):
                 # Extract validated data
                 validated_data = serializer.validated_data
                 #EstNewQuote 
+                
+
+                #End Est New Quote
 
 
 
                 #grain_direction
                 grain_direction = validated_data.get('grain_direction')
-                quoteid = 124
+                quoteid = 125
                 _ = EstGrainDirection.objects.create(grain_direction=grain_direction,quoteid=quoteid)
 
 
@@ -1361,6 +1373,24 @@ class ProcessInputView(APIView):
                             model = EstFoiling
                         elif prid == 'FL':
                             model = EstLamination
+                        elif prid == '39':
+                            model = EstLinerBag
+                        elif prid == 'PN':
+                            model = EstPunching
+                        elif prid == 'EM':
+                            model = EstEmbossing
+                        elif prid == 'Pa':
+                            model = EstPasting
+                        elif prid == 'WP':
+                            model = EstWindowPatching
+                        elif prid == 'FM':
+                            model = EstCorrugation
+                        elif prid == 'FO':
+                            model = EstFolding
+                        elif prid == 'BBP':
+                            model = EstBbp
+                        elif prid == 'SO':
+                            model = EstSorting
                         else:
                             #remove this - 
                             model = None
