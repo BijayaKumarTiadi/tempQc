@@ -8,13 +8,16 @@
 from django.db import models
 
 
-class Currencymaster(models.Model):
-    currencyid = models.CharField(db_column='CurrencyID', primary_key=True, max_length=10)  # Field name made lowercase.
-    currencyname = models.CharField(db_column='CurrencyName', max_length=50, blank=True, null=True)  # Field name made lowercase.
-    currencysymbol = models.CharField(db_column='CurrencySymbol', max_length=20, db_collation='utf8_general_ci', blank=True, null=True)  # Field name made lowercase.
-    isdefault = models.PositiveIntegerField(db_column='IsDefault')  # Field name made lowercase.
-    hexacode = models.CharField(db_column='HexaCode', max_length=6)  # Field name made lowercase.
+class Employeemaster(models.Model):
+    empid = models.CharField(db_column='EmpId', primary_key=True, max_length=10)  # Field name made lowercase.
+    empname = models.CharField(db_column='EmpName', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    post = models.CharField(db_column='Post', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    dept = models.CharField(db_column='Dept', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    address = models.CharField(db_column='Address', max_length=100, blank=True, null=True)  # Field name made lowercase.
+    phone = models.CharField(db_column='Phone', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    joindate = models.DateTimeField(db_column='JoinDate', blank=True, null=True)  # Field name made lowercase.
+    isactive = models.PositiveIntegerField(db_column='IsActive')  # Field name made lowercase.
 
     class Meta:
         managed = False
-        db_table = 'currencymaster'
+        db_table = 'employeemaster'
