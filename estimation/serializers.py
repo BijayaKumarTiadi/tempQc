@@ -5,6 +5,7 @@ from .models import  EstProcessInputDetail
 from .models import  FrontendResponse
 from .models import  EstAdvanceInputDetail,Companymaster
 from .models import  Currencymaster
+from .models import  Employeemaster
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,11 +46,22 @@ class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
                 {
                     "CurrencyID": currency.currencyid,
                     "CurrencyName": currency.currencyname,
-                    "CurrencySymbol": currency.currencysymbol
+                    "CurrencySymbol": currency.currencysymbol,
+                    "is_default":currency.isdefault
                 }
                 for currency in currencies
             ]
             representation['currency_details'] = currency_details
+        elif instance.unique_name == "Our_Executive":
+            Our_Executive = Employeemaster.objects.all()
+            Our_Executive = [
+                {
+                    "empid": Our_Executive.empid,
+                    "empname": Our_Executive.empname
+                }
+                for Our_Executive in Our_Executive
+            ]
+            representation['Our_Executive'] = Our_Executive
         return representation
     class Meta:
         model = EstAdvanceInputDetail
