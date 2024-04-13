@@ -28,8 +28,8 @@ class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
         if instance.unique_name == "Client_Name_Drp":
             # Fetch all company names and IDs from the CompanyMaster model
             companies = Companymaster.objects.values('companyname', 'companyid')
-            company_data = [{"company_name": company['companyname'], "company_id": company['companyid']} for company in companies]
-            representation['company_names'] = company_data
+            company_data = [{"lable": company['companyname'], "value": company['companyid']} for company in companies]
+            representation['select_options'] = company_data
         # You can use this if you want to only  add the Indian Rupees in the currency . * depends upon db .
         # elif instance.unique_name == "CurrancyID":
         #     # Fetch currency details from the Currencymaster model
@@ -44,24 +44,24 @@ class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
             currencies = Currencymaster.objects.all()
             currency_details = [
                 {
-                    "CurrencyID": currency.currencyid,
-                    "CurrencyName": currency.currencyname,
+                    "value": currency.currencyid,
+                    "lable": currency.currencyname,
                     "CurrencySymbol": currency.currencysymbol,
                     "is_default":currency.isdefault
                 }
                 for currency in currencies
             ]
-            representation['currency_details'] = currency_details
+            representation['select_options'] = currency_details
         elif instance.unique_name == "Our_Executive":
             Our_Executive = Employeemaster.objects.all()
             Our_Executive = [
                 {
-                    "empid": Our_Executive.empid,
-                    "empname": Our_Executive.empname
+                    "value": Our_Executive.empid,
+                    "lable": Our_Executive.empname
                 }
                 for Our_Executive in Our_Executive
             ]
-            representation['Our_Executive'] = Our_Executive
+            representation['select_options'] = Our_Executive
         return representation
     class Meta:
         model = EstAdvanceInputDetail
