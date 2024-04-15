@@ -723,7 +723,6 @@ class ProcessInputView(APIView):
                 )
                 new_quote.save()
                 quoteid = new_quote.quoteid
-                print(quoteid)
 
                 #End Est New Quote
 
