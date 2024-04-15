@@ -158,19 +158,3 @@ def insert_data_into_table(cursor, table_name, data):
 
 
 
-
-def get_userid(request):
-        """
-        Returns the user_id of the logged user from the AccessToken Provided in the header . 
-        : Autherization Bearer <token>
-        """
-        try:
-            header = request.headers.get('Authorization')
-            parts = header.split()
-            access_token = parts[1]
-            access_token = AccessToken(access_token)
-            user_id = access_token['user_id']
-            return user_id
-        except Exception as e:
-            error_message = f"Failed to fetch user information for user id  : {str(e)}"
-            return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
