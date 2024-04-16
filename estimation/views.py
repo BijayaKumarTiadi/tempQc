@@ -849,15 +849,15 @@ class ProcessInputView(APIView):
                 #     for row in cursor.fetchall():
                 #         response.append({columns[i]: row[i] for i in range(len(columns))})
                 response = []
-                # with connection.cursor() as cursor:
-                #     cursor.callproc('RND_CartonPlanning', ['3', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
-                #     columns = [col[0] for col in cursor.description]
+                with connection.cursor() as cursor:
+                    cursor.callproc('RND_CartonPlanning', ['3', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
+                    columns = [col[0] for col in cursor.description]
                     
-                #     # Fetch up to 20 rows
-                #     for i, row in enumerate(cursor.fetchall()):
-                #         if i >= 20:
-                #             break
-                #         response.append({columns[j]: row[j] for j in range(len(columns))})
+                    # Fetch up to 20 rows
+                    for i, row in enumerate(cursor.fetchall()):
+                        if i >= 20:
+                            break
+                        response.append({columns[j]: row[j] for j in range(len(columns))})
 
                     
                 return Response({"message": "Data processed successfully", "data": {"quote_id": new_quote.quoteid ,"cs_response":response} }, status=status.HTTP_200_OK)
