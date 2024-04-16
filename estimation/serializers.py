@@ -6,6 +6,7 @@ from .models import  FrontendResponse
 from .models import  EstAdvanceInputDetail,Companymaster
 from .models import  Currencymaster
 from .models import  Employeemaster
+from .models import  EstNewQuote
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,7 +29,7 @@ class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
         if instance.unique_name == "Client_Name_Drp":
             # Fetch all company names and IDs from the CompanyMaster model
             companies = Companymaster.objects.values('companyname', 'companyid')
-            company_data = [{"lable": company['companyname'], "value": company['companyid']} for company in companies]
+            company_data = [{"label": company['companyname'], "value": company['companyid']} for company in companies]
             representation['select_options'] = company_data
         # You can use this if you want to only  add the Indian Rupees in the currency . * depends upon db .
         # elif instance.unique_name == "CurrancyID":
@@ -45,7 +46,7 @@ class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
             currency_details = [
                 {
                     "value": currency.currencyid,
-                    "lable": currency.currencyname,
+                    "label": currency.currencyname,
                     "CurrencySymbol": currency.currencysymbol,
                     "is_default":currency.isdefault
                 }
@@ -57,7 +58,7 @@ class EstAdvanceInputDetailSerializer(serializers.ModelSerializer):
             Our_Executive = [
                 {
                     "value": Our_Executive.empid,
-                    "lable": Our_Executive.empname
+                    "label": Our_Executive.empname
                 }
                 for Our_Executive in Our_Executive
             ]
@@ -160,3 +161,42 @@ class ProcessInputSerializer(serializers.Serializer):
                 if key not in item:
                     raise serializers.ValidationError(f"Missing '{key}' in dimensions.")
         return value
+    
+
+class EstNewQuoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EstNewQuote
+        fields = [
+            'quotedate',
+            'quote_no',
+            'icompanyid',
+            'auid',
+            'clientid',
+            'client_name',
+            'product_name',
+            'product_code',
+            'carton_type_id',
+            'adatetime',
+            'muid',
+            'mdatetime',
+            'remarks',
+            'orderstatus',
+            'finalby',
+            'enqno',
+            'docnotion',
+            'estnotion',
+            'finaldate',
+            'repid',
+            'impexpstatus',
+            'revquoteno',
+            'grainstyle',
+            'locationid',
+            'currencyid',
+            'currency_factctor',
+            'currency_curramt',
+            'clientcategoryid',
+            'calculatedrate',
+            'quoterate',
+            'finalrate',
+            'fpid',
+        ]

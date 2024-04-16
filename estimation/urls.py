@@ -5,6 +5,7 @@ from estimation.views import EstimationHome,papermaster_boards
 from estimation.views import EstProcessInputDetailList
 from estimation.views import ProcessInputView
 from estimation.views import Costsheet
+from estimation.views import EstNewQuoteListCreateView
 
 
 
@@ -16,6 +17,7 @@ urlpatterns = [
     path('/process', EstProcessInputDetailList.as_view(), name='EstProcessInputDetailList'),
     path('/processinput', ProcessInputView.as_view(), name='ProcessInputView'),
     path('/costsheet', Costsheet.as_view(), name='Costsheet'),
+    path('/estimations', EstNewQuoteListCreateView.as_view(), name='estimations'),
     # path('/api4', EstimationHome.as_view(), name='estimation'),
     # path('/api6', EstimationHome.as_view(), name='estimation'),
     # path('/api5', EstimationHome.as_view(), name='estimation'),
