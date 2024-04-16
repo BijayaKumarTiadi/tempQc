@@ -14,6 +14,11 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+
+#Some cache and decorator methods
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+
 # Create your views here.
 from .permissions import ViewByStaffOnlyPermission
 #models imports
@@ -51,6 +56,7 @@ from estimation.serializers import InputDetailSerializer
 from estimation.serializers import  FrontendResponseSerializer
 from estimation.serializers import  ProcessInputSerializer
 from estimation.serializers import  EstAdvanceInputDetailSerializer
+from estimation.serializers import  EstNewQuoteSerializer
 
 
 #From another App
@@ -643,9 +649,21 @@ class ProcessInputView(APIView):
                             )
                         )
                     )
+                ),
+                'adv_options': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'unique_name': openapi.Schema(type=openapi.TYPE_STRING),
+                            'value': openapi.Schema(type=openapi.TYPE_STRING),
+                        },
+                        required=['unique_name', 'value']
+                    ),
+                    description='Array of advanced options'
                 )
             },
-            required=['grain_direction', 'quantity', 'dimensions', 'board_details', 'processes']
+            required=['grain_direction', 'quantity', 'dimensions', 'board_details', 'processes', 'adv_options']
         ),
         manual_parameters=[
             openapi.Parameter(
@@ -683,7 +701,6 @@ class ProcessInputView(APIView):
                 adatetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                 data = request.data
-                client_id = data.get('ClientID')
                 client_name = data.get('Client_Name')
                 product_name = data.get('Product_Name')
                 product_code = data.get('Product_Code')
@@ -711,13 +728,24 @@ class ProcessInputView(APIView):
                 quote_rate = data.get('QuoteRate')
                 final_rate = data.get('FinalRate')
                 fpid = data.get('FPID')
+
+                adv_options=data.get('adv_options')
+                field_mapping = {option['unique_name']: option['value'] for option in adv_options}
+
+                # Now you can access the values using the unique_name as the key
+                clientid = field_mapping.get('Client_Name_Drp')
+                client_name = field_mapping.get('Client_Name')
+                repid = field_mapping.get('Our_Executive')
+                grainstyle = field_mapping.get('Grain_Style')
+                currencyid = field_mapping.get('CurrancyID')
                 
 
 
                 new_quote = EstNewQuote(
                 icompanyid=icompanyid,
                 auid=auid,quotedate=quotedate,adatetime=adatetime,
-                mdatetime=mdatetime,
+                mdatetime=mdatetime,clientid=clientid,client_name=client_name,
+                repid=repid,grainstyle=grainstyle,currencyid=currencyid,
 
                     # To Add more fields
                 )
@@ -810,17 +838,27 @@ class ProcessInputView(APIView):
                             except Exception as e:
                                 # Handle exceptions (e.g., validation errors)
                                 print(f"Failed to insert data into {model.__name__}: {e}")
-                    print(final_data)
-                    print("...........\n")
+
                 # End Processes
 
                 #Fetch the table data
+                # response = []
+                # with connection.cursor() as cursor:
+                #     cursor.callproc('RND_CartonPlanning', ['3', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
+                #     columns = [col[0] for col in cursor.description]
+                #     for row in cursor.fetchall():
+                #         response.append({columns[i]: row[i] for i in range(len(columns))})
                 response = []
                 with connection.cursor() as cursor:
-                    cursor.callproc('RND_CartonPlanning', ['', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
+                    cursor.callproc('RND_CartonPlanning', ['3', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
                     columns = [col[0] for col in cursor.description]
-                    for row in cursor.fetchall():
-                        response.append({columns[i]: row[i] for i in range(len(columns))})
+                    
+                    # Fetch up to 20 rows
+                    for i, row in enumerate(cursor.fetchall()):
+                        if i >= 20:
+                            break
+                        response.append({columns[j]: row[j] for j in range(len(columns))})
+
                     
                 return Response({"message": "Data processed successfully", "data": {"quote_id": new_quote.quoteid ,"cs_response":response} }, status=status.HTTP_200_OK)
             except ValidationError as e:
@@ -879,6 +917,306 @@ class Costsheet(APIView):
             error_message = f"Failed to process the data: {str(e)}"
             return Response({"message": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
+
+# @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes for whole view
+class EstNewQuoteListCreateView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    # you can set this to user role wise .
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve all quote .",
+        operation_description="Fetch all the quotes which saved by the logged user .",
+        
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: 'Data processed successfully',
+            400: 'Invalid input data',
+            401: 'Unauthorized: Invalid access token',
+            404: 'Not Found',
+            500: 'Failed to process the data. Please try again later.'
+        },
+        tags=['Estimation']
+    )
+    
+    @method_decorator(cache_page(60 * 1))
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieve all quotes associated with the provided user ID.
+
+        Args:
+            request (Request): The incoming HTTP request.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: Response containing the serialized list of quotes or an error message.
+        """
+        try:
+            auid = request.user.id
+            user = GetUserData.get_user(request)
+            if auid and (user.is_superuser):
+                # If admin or superuser, fetch all quotes
+                quotes = EstNewQuote.objects.all()
+            else:
+                # Otherwise, filter quotes based on the logged-in user
+                quotes = EstNewQuote.objects.filter(auid=auid) #By the logged User .
+
+            serializer = EstNewQuoteSerializer(quotes, many=True)
+            return Response({"message": "Data fetched successfully", "data": serializer.data }, status=status.HTTP_200_OK)
+        except EstNewQuote.DoesNotExist:
+            return Response({"message": "Quotes not found", "data": {}}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+                error_message = f"Failed to fetch Estimations : {str(e)}"
+                return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @swagger_auto_schema(
+    operation_summary="Update the Quote.",
+    operation_description="Update the existing quote with the provided data.",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'quote_id': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='ID of the quote to be updated.'
+            ),
+            'quotedate': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Quote date.'
+            ),
+            'quote_no': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Quote number.'
+            ),
+            'icompanyid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Company ID.'
+            ),
+            'clientid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Client ID.'
+            ),
+            'client_name': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Client name.'
+            ),
+            'product_name': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Product name.'
+            ),
+            'product_code': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Product code.'
+            ),
+            'carton_type_id': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='Carton type ID.'
+            ),
+            'auid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='AUID.'
+            ),
+            'adatetime': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='AUID date time.'
+            ),
+            'muid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='MUID.'
+            ),
+            'mdatetime': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='MUID date time.'
+            ),
+            'remarks': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Remarks.'
+            ),
+            'orderstatus': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Order status.'
+            ),
+            'isactive': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='Is active.'
+            ),
+            'finalby': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Final by.'
+            ),
+            'enqno': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Enquiry number.'
+            ),
+            'docnotion': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='Doc notion.'
+            ),
+            'estnotion': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Estimation notion.'
+            ),
+            'finaldate': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Final date.'
+            ),
+            'repid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Representative ID.'
+            ),
+            'impexpstatus': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Import/export status.'
+            ),
+            'revquoteno': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='Revised quote number.'
+            ),
+            'grainstyle': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='Grain style.'
+            ),
+            'locationid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Location ID.'
+            ),
+            'currencyid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Currency ID.'
+            ),
+            'currency_factctor': openapi.Schema(
+                type=openapi.TYPE_NUMBER,
+                description='Currency factor.'
+            ),
+            'currency_curramt': openapi.Schema(
+                type=openapi.TYPE_NUMBER,
+                description='Currency current amount.'
+            ),
+            'clientcategoryid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Client category ID.'
+            ),
+            'calculatedrate': openapi.Schema(
+                type=openapi.TYPE_NUMBER,
+                description='Calculated rate.'
+            ),
+            'quoterate': openapi.Schema(
+                type=openapi.TYPE_NUMBER,
+                description='Quote rate.'
+            ),
+            'finalrate': openapi.Schema(
+                type=openapi.TYPE_NUMBER,
+                description='Final rate.'
+            ),
+            'fpid': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='FPID.'
+            ),
+        },
+        required=['quote_id']
+    ),
+    manual_parameters=[
+        openapi.Parameter(
+            name='Authorization',
+            in_=openapi.IN_HEADER,
+            type=openapi.TYPE_STRING,
+            description='Bearer token',
+            required=True,
+            format='Bearer <Token>'
+        )
+    ],
+    responses={
+        200: 'Data updated successfully',
+        400: 'Invalid input data',
+        401: 'Unauthorized: Invalid access token',
+        404: 'Not Found',
+        500: 'Failed to process the data. Please try again later.'
+    },
+    tags=['Estimation']
+    )
+
+    def patch(self, request, *args, **kwargs):
+        try:
+            quote_id = request.data.get('quote_id')
+            quote = EstNewQuote.objects.get(quoteid=quote_id)
+            serializer = EstNewQuoteSerializer(quote, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Data updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Invalid input data", "data": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except EstNewQuote.DoesNotExist:
+            return Response({"message": "Quote not found", "data": {}}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+    @swagger_auto_schema(
+        operation_summary="Delete the Quote .  .",
+        operation_description="You can delete the Estimation from the list by passing quoteid .",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'quote_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Dict of quote_id .'
+                )
+            },
+            required=['quote_id']
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            204: 'Data Deleted successfully',
+            400: 'Invalid input data',
+            401: 'Unauthorized: Invalid access token',
+            404: 'Not Found',
+            500: 'Failed to process the data. Please try again later.'
+        },
+        tags=['Estimation']
+    )
+    def delete(self, request, *args, **kwargs):
+        """
+        Delete a specific quote from the system.
+
+        Args:
+            request (Request): The incoming HTTP request.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Request Body:
+            {
+                'quote_id': int,  # ID of the quote to delete.
+            }
+
+        Returns:
+            Response: Response indicating success or failure of the delete operation.
+        """
+        try:
+            quote_id = request.data.get('quote_id')
+            quote = EstNewQuote.objects.get(quoteid=quote_id)
+            quote.delete()
+            return Response({"message": "Data deleted successfully", "data": {} }, status=status.HTTP_204_NO_CONTENT)
+        except EstNewQuote.DoesNotExist:
+            return Response({"message": "Estimation not found", "data": {} }, status=status.HTTP_404_NOT_FOUND)
 # change the payload json_response or the parsing method
 # add all the tables
 # parse all informations with dynamic like which contains foiling and what if someone not use foiling manage that payload optional

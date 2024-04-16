@@ -13,7 +13,10 @@ from django.http import JsonResponse
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
-
+"""
+print(request.user) -- get user_id
+print(request.user.id) -- get user
+"""
 class GetUserData:
 
     @staticmethod
@@ -23,12 +26,7 @@ class GetUserData:
         : Authorization Bearer <token>
         """
         try:
-            header = request.headers.get('Authorization')
-            parts = header.split()
-            access_token = parts[1]
-            access_token = AccessToken(access_token)
-            user_id = access_token['user_id']
-            return user_id
+            return request.user.id
         except Exception as e:
             error_message = f"Failed to fetch user information for user id: {str(e)}"
             return JsonResponse({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
