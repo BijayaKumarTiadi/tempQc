@@ -200,3 +200,13 @@ class EstNewQuoteSerializer(serializers.ModelSerializer):
             'finalrate',
             'fpid',
         ]
+
+    def save(self, **kwargs):
+        """
+        This is used for the log entry . 
+        """
+        request = kwargs.pop('request', None)
+        instance = super().save(**kwargs)
+        if request:
+            instance.save(request=request)
+        return instance

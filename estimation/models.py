@@ -1,5 +1,15 @@
+from django.utils import timezone
 from django.db import models
 from imagekit.models import ProcessedImageField
+
+#for signal savings
+from django.dispatch import receiver
+
+from django.db.models.signals import pre_save
+from accounts.models import ChangeLog
+from django.contrib.admin.models import ADDITION, CHANGE, DELETION
+from django.contrib.contenttypes.models import ContentType
+
 class EstItemtypemaster(models.Model):
     id = models.AutoField(db_column='ID', primary_key=True)  
     CartonType = models.CharField(db_column='CartonType', max_length=60)  
@@ -134,9 +144,9 @@ class EstNewQuote(models.Model):
     product_name = models.CharField(db_column='Product_Name', max_length=100, blank=True, null=True)  
     product_code = models.CharField(db_column='Product_Code', max_length=20, blank=True, null=True)  
     carton_type_id = models.IntegerField(db_column='Carton_Type_ID', blank=True, null=True)  
-    auid = models.CharField(db_column='AUID', max_length=10)  
-    adatetime = models.DateTimeField(db_column='ADateTime', blank=True, null=True)  
-    muid = models.CharField(db_column='MUID', max_length=10, blank=True, null=True)  
+    auid = models.CharField(db_column='AUID', max_length=10)
+    adatetime = models.DateTimeField(db_column='ADateTime', auto_now_add=True)  
+    muid = models.CharField(db_column='MUID', max_length=10, blank=True, null=True)
     mdatetime = models.DateTimeField(db_column='MDateTime', blank=True, null=True)  
     remarks = models.CharField(db_column='Remarks', max_length=200, blank=True, null=True)  
     orderstatus = models.CharField(db_column='OrderStatus', max_length=20, blank=True, null=True)  
@@ -163,6 +173,59 @@ class EstNewQuote(models.Model):
     class Meta:
         managed = False
         db_table = 'Est_New_quote'
+
+    def save(self, *args, **kwargs):
+        request = kwargs.pop('request', None)
+        is_new = not self.pk  # HEre Check if the instance has a primary key 
+        super().save(*args, **kwargs)
+        action_flag = ADDITION if is_new else CHANGE
+        if request:
+            try:
+                ChangeLog.objects.create(
+                    object_id=str(self.quoteid),
+                    object_repr=str(self),
+                    action_flag=action_flag,
+                    change_message='',
+                    content_type=ContentType.objects.get_for_model(self.__class__),
+                    user=request.user,
+                )
+            except Exception as e:
+                print(f"Error logging change: {e}")
+
+    def delete(self, *args, **kwargs):
+        request = kwargs.pop('request', None)
+        if request is None and 'context' in kwargs:
+            request = kwargs['context'].get('request')
+        object_id = str(self.quoteid) if self.quoteid else None
+        object_repr = f"{self.__class__.__name__} object ({object_id})" if object_id else f"{self.__class__.__name__} object (None)"
+        super().delete(*args, **kwargs)
+        try:
+            ChangeLog.objects.create(
+                object_id=object_id,
+                object_repr=object_repr,
+                action_flag=DELETION,
+                change_message='',
+                content_type=ContentType.objects.get_for_model(self.__class__),
+                user=request.user if request else None,
+            )
+        except Exception as e:
+            print(f"Error logging deletion: {e}")
+
+@receiver(pre_save, sender=EstNewQuote)
+def update_estnewquote_log(sender, instance, **kwargs):
+    request = getattr(instance, 'request', None)
+    
+    if not instance.auid:
+        # If auid is not set, it means the record is being created
+        if request:
+            instance.auid = str(request.user.id)
+        instance.adatetime = timezone.now()
+    else:
+        # If auid is set, it means the record is being updated
+        if request:
+            instance.muid = str(request.user.id)
+        instance.mdatetime = timezone.now()
+
 
 
 class EstQty(models.Model):

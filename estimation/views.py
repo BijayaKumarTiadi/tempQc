@@ -749,7 +749,7 @@ class ProcessInputView(APIView):
 
                     # To Add more fields
                 )
-                new_quote.save()
+                new_quote.save(request=request)
                 quoteid = new_quote.quoteid
 
                 #End Est New Quote
@@ -1152,7 +1152,7 @@ class EstNewQuoteListCreateView(APIView):
             quote = EstNewQuote.objects.get(quoteid=quote_id)
             serializer = EstNewQuoteSerializer(quote, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()
+                serializer.save(request=request) #for signal
                 return Response({"message": "Data updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
             else:
                 return Response({"message": "Invalid input data", "data": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -1213,7 +1213,7 @@ class EstNewQuoteListCreateView(APIView):
         try:
             quote_id = request.data.get('quote_id')
             quote = EstNewQuote.objects.get(quoteid=quote_id)
-            quote.delete()
+            quote.delete(request=request)
             return Response({"message": "Data deleted successfully", "data": {} }, status=status.HTTP_204_NO_CONTENT)
         except EstNewQuote.DoesNotExist:
             return Response({"message": "Estimation not found", "data": {} }, status=status.HTTP_404_NOT_FOUND)
