@@ -7,6 +7,11 @@ from django.utils.html import format_html
 # Create your models here.
 
 
+#for change log 
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 #Not Used ... Use for extra fields
@@ -124,5 +129,29 @@ class AppModule(models.Model):
     #     return format_html(
     #         '<img src="/media/{}" style="width:40px;height:40px;border-radius:50%;"  />'.format(self.image))
 
-    
 
+#you can use this to log all the models 
+class ChangeLog(models.Model):
+    ACTION_FLAG_CHOICES = (
+        (ADDITION, 'Addition'),
+        (CHANGE, 'Change'),
+        (DELETION, 'Deletion'),
+    )
+
+    action_time = models.DateTimeField(auto_now_add=True)
+    object_id = models.TextField(null=True, blank=True)
+    object_repr = models.CharField(max_length=200)
+    action_flag = models.SmallIntegerField(choices=ACTION_FLAG_CHOICES)
+    change_message = models.TextField()
+    content_type = models.ForeignKey(ContentType, blank=True, null=True, related_name='change_logs', on_delete=models.SET_NULL)
+    user = models.ForeignKey(CustomUser, blank=True, null=True, related_name='change_logs', on_delete=models.SET_NULL)
+
+    class Meta:
+        ordering = ('-action_time',)
+
+    @property
+    def action_name(self):
+        return self.get_action_flag_display()
+
+    def __str__(self):
+        return f'{self.action_time} - {self.object_repr} - {self.get_action_flag_display()} by {self.user.username}'
