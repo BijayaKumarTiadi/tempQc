@@ -166,40 +166,11 @@ class ProcessInputSerializer(serializers.Serializer):
 class EstNewQuoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = EstNewQuote
-        fields = [
-            'quotedate',
-            'quote_no',
-            'icompanyid',
-            'auid',
-            'clientid',
-            'client_name',
-            'product_name',
-            'product_code',
-            'carton_type_id',
-            'adatetime',
-            'muid',
-            'mdatetime',
-            'remarks',
-            'orderstatus',
-            'finalby',
-            'enqno',
-            'docnotion',
-            'estnotion',
-            'finaldate',
-            'repid',
-            'impexpstatus',
-            'revquoteno',
-            'grainstyle',
-            'locationid',
-            'currencyid',
-            'currency_factctor',
-            'currency_curramt',
-            'clientcategoryid',
-            'calculatedrate',
-            'quoterate',
-            'finalrate',
-            'fpid',
-        ]
+        fields = ['quotedate','quote_no','icompanyid','auid','clientid','client_name','product_name',
+            'product_code','carton_type_id','adatetime','muid','mdatetime','remarks','orderstatus',
+            'finalby','enqno','docnotion','estnotion','finaldate','repid','impexpstatus','revquoteno',
+            'grainstyle','locationid','currencyid','currency_factctor','currency_curramt','clientcategoryid',
+            'calculatedrate','quoterate','finalrate','fpid',]
 
     def save(self, **kwargs):
         """

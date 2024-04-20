@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from datetime import datetime
+import json
 from django.http import HttpResponse,JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -58,15 +59,11 @@ from estimation.serializers import  ProcessInputSerializer
 from estimation.serializers import  EstAdvanceInputDetailSerializer
 from estimation.serializers import  EstNewQuoteSerializer
 
-
 #From another App
 from accounts.helpers import GetUserData
 
 #private methods
 from .helpers import  process_dropdown_data
-from .helpers import insert_into_est_new_quote
-from .helpers import insert_data_into_table
-from .helpers import insert_into_est_qty
 
 class EstimationHome(APIView):
     """
@@ -850,17 +847,33 @@ class ProcessInputView(APIView):
                 #         response.append({columns[i]: row[i] for i in range(len(columns))})
                 response = []
                 with connection.cursor() as cursor:
-                    cursor.callproc('RND_CartonPlanning', ['3', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
-                    columns = [col[0] for col in cursor.description]
+                    args = ['', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10]
+                    cursor.callproc('RND_CartonPlanning', args)
                     
-                    # Fetch up to 20 rows
-                    for i, row in enumerate(cursor.fetchall()):
-                        if i >= 20:
-                            break
-                        response.append({columns[j]: row[j] for j in range(len(columns))})
+                    results = {}
+                    table_index = 1
+                    
+                    # Fetch the first result set
+                    rows = cursor.fetchall()
+                    if rows:
+                        column_names = [desc[0] for desc in cursor.description]
+                        results[f"table_{table_index}"] = [dict(zip(column_names, row)) for row in rows]
+                        table_index += 1
+                    
+                    # Fetch remaining result sets
+                    while cursor.nextset():
+                        rows = cursor.fetchall()
+                        if rows:
+                            column_names = [desc[0] for desc in cursor.description]
+                            results[f"table_{table_index}"] = [dict(zip(column_names, row)) for row in rows]
+                            table_index += 1
+                    
+                    # Convert the results to JSON
+                    json_results = json.dumps(results, default=str)
+                    print(json_results)
 
                     
-                return Response({"message": "Data processed successfully", "data": {"quote_id": new_quote.quoteid ,"cs_response":response} }, status=status.HTTP_200_OK)
+                return Response({"message": "Data processed successfully", "data": {"quote_id": new_quote.quoteid ,"cs_response":results} }, status=status.HTTP_200_OK)
             except ValidationError as e:
                 error_message = "Invalid input data"
                 return Response({"message": error_message, "errors": e.detail}, status=status.HTTP_400_BAD_REQUEST)
@@ -870,19 +883,23 @@ class ProcessInputView(APIView):
 
 
 class Costsheet(APIView):
+    """
+    API endpoint to process cost sheet data.
+    """
+    
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
-
+    permission_classes = [IsAuthenticated]
+    
     @swagger_auto_schema(
         operation_summary="Process Cost Sheet Data.",
         operation_description="Executes the RND_CartonPlanning stored procedure with the provided parameters.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'PMachineID': openapi.Schema(type=openapi.TYPE_STRING, description="ID of the machine"),
-                
+                'recordID': openapi.Schema(type=openapi.TYPE_STRING, description="Record ID."),
+                'TabNo': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tab Number.")
             },
-            required=['PMachineID']
+            required=['recordID', 'TabNo']
         ),
         manual_parameters=[
             openapi.Parameter(
@@ -895,29 +912,42 @@ class Costsheet(APIView):
             )
         ],
         responses={
-            200: 'Data processed successfully',
-            400: 'Invalid input data',
-            401: 'Unauthorized: Invalid access token',
-            404: 'Not Found',
-            500: 'Failed to process the data. Please try again later.'
+            200: openapi.Response(description='Data processed successfully'),
+            400: openapi.Response(description='Invalid input data'),
+            401: openapi.Response(description='Unauthorized: Invalid access token'),
+            404: openapi.Response(description='Not Found'),
+            500: openapi.Response(description='Failed to process the data. Please try again later.')
         },
         tags=['Estimation']
     )
     def post(self, request, *args, **kwargs):
+        """
+        Execute the RND_CartonPlanning stored procedure with the provided parameters.
+        
+        Args:
+            request (Request): The incoming HTTP request containing the parameters.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: A response containing the processed data or an error message.
+        """
         try:
+            record_id = request.data.get('recordID')
+            tab_no = request.data.get('TabNo')
+            
             with connection.cursor() as cursor:
-                cursor.execute("SELECT * FROM qcsheetex1 WHERE recordID='00001' AND TabNo=0 ORDER BY CAST(field8 AS DECIMAL)")
-                results = cursor.fetchall()  # Fetch all the results
-                columns = [col[0] for col in cursor.description]  # Get column names
-                data = []
-                for row in results:
-                    data.append(dict(zip(columns, row)))  # Create dictionary for each row
-            return Response({"message": "Data processed successfully", "data": data }, status=status.HTTP_200_OK)
+                # cursor.execute("SELECT * FROM qcsheetex1 WHERE recordID=%s AND TabNo=%s ORDER BY CAST(field8 AS DECIMAL)", [record_id, tab_no])
+                cursor.execute("SELECT * FROM qcsheetex1 WHERE recordID=%s AND TabNo=%s ORDER BY CAST(rowno AS DECIMAL);", [record_id, tab_no])
+                results = cursor.fetchall()
+                columns = [col[0] for col in cursor.description]
+                data = [dict(zip(columns, row)) for row in results]
+                
+            return Response({"message": "success. ", "data": data}, status=status.HTTP_200_OK)
+        
         except Exception as e:
             error_message = f"Failed to process the data: {str(e)}"
             return Response({"message": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 
 # @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes for whole view
