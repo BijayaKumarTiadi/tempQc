@@ -6,6 +6,7 @@ from estimation.views import EstProcessInputDetailList
 from estimation.views import ProcessInputView
 from estimation.views import Costsheet
 from estimation.views import EstNewQuoteListCreateView
+from estimation.views import PaperGridQtyAPIView
 
 
 
@@ -18,6 +19,7 @@ urlpatterns = [
     path('/processinput', ProcessInputView.as_view(), name='ProcessInputView'),
     path('/costsheet', Costsheet.as_view(), name='Costsheet'),
     path('/estimations', EstNewQuoteListCreateView.as_view(), name='estimations'),
+    path('papergrid_qty/', PaperGridQtyAPIView.as_view(), name='papergrid_qty'),
     # path('/api4', EstimationHome.as_view(), name='estimation'),
     # path('/api6', EstimationHome.as_view(), name='estimation'),
     # path('/api5', EstimationHome.as_view(), name='estimation'),

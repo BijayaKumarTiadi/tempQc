@@ -7,6 +7,7 @@ from .models import  EstAdvanceInputDetail,Companymaster
 from .models import  Currencymaster
 from .models import  Employeemaster
 from .models import  EstNewQuote
+from .models import PaperGridQty
 
 class EstItemtypedetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -181,3 +182,27 @@ class EstNewQuoteSerializer(serializers.ModelSerializer):
         if request:
             instance.save(request=request)
         return instance
+    
+class PaperGridQtySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaperGridQty
+        fields = (
+            'Inc', 'Dackle_Dim', 'Grain_Dim', 'Ups', 'AreaPerCarton_SqInch',
+            'Scan', 'Grain', 'MachineID', 'MachineName', 'NoOfPass_req', 'Mat_X',
+            'Mat_Y', 'DieLength_In_Inch', 'Qty', 'F_Color', 'B_Color',
+            'Die_PlanHeight', 'Die_PlanWidth', 'FullSheet_D', 'FullSheet_G',
+            'FullSheet_Grain', 'FullSheet_Cut_X', 'FullSheet_Cut_Y', 'FullSheet_Ups',
+            'Sheets_A', 'HeightCut', 'WidthCut', 'LengthRemaining', 'WidthRemaining',
+            'ItemsInFirstCut', 'TotalCuts', 'TotalBox', 'Dackle_Dim_B', 'Grain_Dim_B',
+            'Ups_B', 'Mat_X_B', 'Mat_Y_B', 'Cuts_B', 'Sheets_B', 'Dackle_Dim_C',
+            'Grain_Dim_C', 'Ups_C', 'Mat_X_C', 'Mat_Y_C', 'Cuts_C', 'Sheets_C',
+            'Dackle_Dim_D', 'Grain_Dim_D', 'Ups_D', 'Mat_X_D', 'Mat_Y_D', 'Cuts_D',
+            'Sheets_D', 'Dackle_Dim_Tot', 'Grain_Dim_Tot', 'Wastage_X', 'Wastage_Y',
+            'Wastage_Weight_kg_A', 'Wastage_Weight_kg_B', 'Wastage_Weight_kg',
+            'UtilizationPer', 'FullSheet_Req', 'PaperID', 'Gsm', 'Paper_Rate',
+            'Paper_Unit', 'Print_Size_Sheets', 'Print_Impression', 'Paper_Kg',
+            'Paper_Kg_FullSheet', 'Paper_Amt', 'PunchDie_Amt', 'Plate_Amt',
+            'PrMake_Ready_Amt', 'Printing_Amt', 'Total_Amt', 'PN_McID',
+            'PN_MachineName', 'PN_MaxDackle', 'PN_MinDackle', 'PN_MaxGrain',
+            'PN_MinGrain', 'PN_Gripper', 'PN_MakeRdy_Amt', 'PN_Punching_Amt'
+        )

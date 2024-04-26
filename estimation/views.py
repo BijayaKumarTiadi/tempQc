@@ -48,6 +48,7 @@ from estimation.models import EstFolding
 from estimation.models import EstSorting
 from estimation.models import EstBbp
 from estimation.models import EstNewQuote
+from estimation.models import PaperGridQty
 
 
 
@@ -58,6 +59,7 @@ from estimation.serializers import  FrontendResponseSerializer
 from estimation.serializers import  ProcessInputSerializer
 from estimation.serializers import  EstAdvanceInputDetailSerializer
 from estimation.serializers import  EstNewQuoteSerializer
+from estimation.serializers import  PaperGridQtySerializer
 
 #From another App
 from accounts.helpers import GetUserData
@@ -838,39 +840,20 @@ class ProcessInputView(APIView):
 
                 # End Processes
 
-                #Fetch the table data
-                # response = []
-                # with connection.cursor() as cursor:
-                #     cursor.callproc('RND_CartonPlanning', ['3', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10])
-                #     columns = [col[0] for col in cursor.description]
-                #     for row in cursor.fetchall():
-                #         response.append({columns[i]: row[i] for i in range(len(columns))})
-                response = []
+                # Run the procedure
+                args = ['', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10]
                 with connection.cursor() as cursor:
-                    args = ['', 1, 0, 4, 0, 31, 31, 67, 7, 10, 0, 0, 0, 0, 0, 0, 5, 5, 5, 10]
                     cursor.callproc('RND_CartonPlanning', args)
-                    
                     results = {}
                     table_index = 1
-                    
-                    # Fetch the first result set
-                    rows = cursor.fetchall()
-                    if rows:
+                    while True:
+                        rows = cursor.fetchall()
+                        if not rows:
+                            break
                         column_names = [desc[0] for desc in cursor.description]
                         results[f"table_{table_index}"] = [dict(zip(column_names, row)) for row in rows]
+                        cursor.nextset()
                         table_index += 1
-                    
-                    # Fetch remaining result sets
-                    while cursor.nextset():
-                        rows = cursor.fetchall()
-                        if rows:
-                            column_names = [desc[0] for desc in cursor.description]
-                            results[f"table_{table_index}"] = [dict(zip(column_names, row)) for row in rows]
-                            table_index += 1
-                    
-                    # Convert the results to JSON
-                    json_results = json.dumps(results, default=str)
-                    print(json_results)
 
                     
                 return Response({"message": "Data processed successfully", "data": {"quote_id": new_quote.quoteid ,"cs_response":results} }, status=status.HTTP_200_OK)
@@ -881,6 +864,78 @@ class ProcessInputView(APIView):
                 error_message = f"Failed to fetch/save Process Input View information: {str(e)}"
                 return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class PaperGridQtyAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'inc_values',
+                openapi.IN_QUERY,
+                description='List of Inc values separated by commas (e.g., "1,2,3")',
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        },
+        tags=['Estimation']
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Fetches PaperGridQty objects based on the provided Inc values.
+        
+        :param request: The HTTP request.
+        :param inc_values: List of Inc values separated by commas.
+        :return: Serialized PaperGridQty objects.
+        """
+        # inc_values_str = request.GET.get('inc_values', None)
+        # if not inc_values_str:
+        #     return Response({'detail': 'inc_values is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # inc_values_list = [int(i) for i in inc_values_str.split(',')]
+        
+        # queryset = PaperGridQty.objects.filter(Inc__in=inc_values_list)
+        # serializer = PaperGridQtySerializer(queryset, many=True)
+        # return Response(serializer.data, status=status.HTTP_200_OK)
+        #=======Model will not work as we are working with the temp tables .
+        inc_values_str = request.GET.get('inc_values', None)
+        if not inc_values_str:
+            return Response({'detail': 'inc_values is required'}, status=status.HTTP_400_BAD_REQUEST)
+        # Convert the inc_values string to a list of integers
+        inc_values_list = [int(i) for i in inc_values_str.split(',')]
+        query = """
+        SELECT *
+        FROM papergrid_qty
+        WHERE Inc IN (%s);
+        """
+        
+        with connection.cursor() as cursor:
+            cursor.execute(query, [','.join(map(str, inc_values_list))])
+            rows = cursor.fetchall()
+            
+            # Convert fetched data to a dictionary
+            results = []
+            for row in rows:
+                results.append({
+                    'Inc': row[0],
+                    # Map other columns as required...
+                })
+            
+        return Response(results, status=status.HTTP_200_OK)
 
 class Costsheet(APIView):
     """
