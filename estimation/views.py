@@ -48,7 +48,7 @@ from estimation.models import EstFolding
 from estimation.models import EstSorting
 from estimation.models import EstBbp
 from estimation.models import EstNewQuote
-from estimation.models import PaperGridQty
+from estimation.models import PapergridQtyP
 
 
 
@@ -59,7 +59,7 @@ from estimation.serializers import  FrontendResponseSerializer
 from estimation.serializers import  ProcessInputSerializer
 from estimation.serializers import  EstAdvanceInputDetailSerializer
 from estimation.serializers import  EstNewQuoteSerializer
-from estimation.serializers import  PaperGridQtySerializer
+from estimation.serializers import  PaperGridQtyPSerializer
 
 #From another App
 from accounts.helpers import GetUserData
@@ -868,16 +868,22 @@ class ProcessInputView(APIView):
 class PaperGridQtyAPIView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
-
+    """
+    API endpoint for processing input data and fetching Paper Grid information.
+    """
     @swagger_auto_schema(
+        operation_summary="Process input data and fetch Paper Grid information.",
+        operation_description="This endpoint processes the input data, which includes a comma-separated list of Inc values, and fetches Paper Grid information based on the provided Inc values.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'inc_data': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='Comma-separated list of Inc values like "3325, 3334, ..." '
+                )
+            }
+        ),
         manual_parameters=[
-            openapi.Parameter(
-                'inc_values',
-                openapi.IN_QUERY,
-                description='List of Inc values separated by commas (e.g., "1,2,3")',
-                type=openapi.TYPE_STRING,
-                required=True,
-            ),
             openapi.Parameter(
                 name='Authorization',
                 in_=openapi.IN_HEADER,
@@ -889,53 +895,24 @@ class PaperGridQtyAPIView(APIView):
         ],
         responses={
             200: "Success",
-            401: "Unauthorized",
-            500: "Internal server error"
+            400: "Bad Request",
+            500: "Internal Server Error"
         },
         tags=['Estimation']
     )
-    def get(self, request, *args, **kwargs):
-        """
-        Fetches PaperGridQty objects based on the provided Inc values.
-        
-        :param request: The HTTP request.
-        :param inc_values: List of Inc values separated by commas.
-        :return: Serialized PaperGridQty objects.
-        """
-        # inc_values_str = request.GET.get('inc_values', None)
-        # if not inc_values_str:
-        #     return Response({'detail': 'inc_values is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # inc_values_list = [int(i) for i in inc_values_str.split(',')]
-        
-        # queryset = PaperGridQty.objects.filter(Inc__in=inc_values_list)
-        # serializer = PaperGridQtySerializer(queryset, many=True)
-        # return Response(serializer.data, status=status.HTTP_200_OK)
-        #=======Model will not work as we are working with the temp tables .
-        inc_values_str = request.GET.get('inc_values', None)
-        if not inc_values_str:
-            return Response({'detail': 'inc_values is required'}, status=status.HTTP_400_BAD_REQUEST)
-        # Convert the inc_values string to a list of integers
-        inc_values_list = [int(i) for i in inc_values_str.split(',')]
-        query = """
-        SELECT *
-        FROM papergrid_qty
-        WHERE Inc IN (%s);
-        """
-        
-        with connection.cursor() as cursor:
-            cursor.execute(query, [','.join(map(str, inc_values_list))])
-            rows = cursor.fetchall()
-            
-            # Convert fetched data to a dictionary
-            results = []
-            for row in rows:
-                results.append({
-                    'Inc': row[0],
-                    # Map other columns as required...
-                })
-            
-        return Response(results, status=status.HTTP_200_OK)
+    def post(self, request, *args, **kwargs):
+        try:
+            inc_data = request.data.get('inc_data')
+            if not inc_data:
+                return Response({'error': 'inc_data parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+            inc_ids = [int(inc_id) for inc_id in inc_data.split(',')]
+            paper_grid_data = PapergridQtyP.objects.filter(inc__in=inc_ids).values('inc', 'dackle_dim', 'grain_dim', 'ups', 'areapercarton_sqinch', 'scan', 'grain', 'machineid', 'machinename', 'noofpass_req', 'mat_x', 'mat_y', 'dielength_in_inch', 'qty', 'f_color', 'b_color', 'die_planheight', 'die_planwidth', 'fullsheet_d', 'fullsheet_g', 'fullsheet_grain', 'fullsheet_cut_x', 'fullsheet_cut_y', 'fullsheet_ups', 'sheets_a', 'heightcut', 'widthcut', 'lengthremaining', 'widthremaining', 'itemsinfirstcut', 'totalcuts', 'totalbox', 'dackle_dim_b', 'grain_dim_b', 'ups_b', 'mat_x_b', 'mat_y_b', 'cuts_b', 'sheets_b', 'dackle_dim_c', 'grain_dim_c', 'ups_c', 'mat_x_c', 'mat_y_c', 'cuts_c', 'sheets_c', 'dackle_dim_d', 'grain_dim_d', 'ups_d', 'mat_x_d', 'mat_y_d', 'cuts_d', 'sheets_d', 'dackle_dim_tot', 'grain_dim_tot', 'wastage_x', 'wastage_y', 'wastage_weight_kg_a', 'wastage_weight_kg_b', 'wastage_weight_kg', 'utilizationper', 'fullsheet_req', 'paperid', 'gsm', 'paper_rate', 'paper_unit', 'print_size_sheets', 'print_impression', 'paper_kg', 'paper_kg_fullsheet', 'paper_amt', 'punchdie_amt', 'plate_amt', 'prmake_ready_amt', 'printing_amt', 'total_amt', 'pn_mcid', 'pn_machinename', 'pn_maxdackle', 'pn_mindackle', 'pn_maxgrain', 'pn_mingrain', 'pn_gripper', 'pn_makerdy_amt', 'pn_punching_amt')
+            serializer = PaperGridQtyPSerializer(paper_grid_data, many=True)
+            return Response({"message": "Data Fetched successfully", "data": serializer.data }, status=status.HTTP_200_OK)
+        except Exception as e:
+                error_message = f"Failed to fetch Paper GridQty APIView information: {str(e)}"
+                return Response({"message": error_message, "data": {}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class Costsheet(APIView):
     """

@@ -49,7 +49,6 @@ urlpatterns = [
     path("",home_page),
     path("api/v1/",include('accounts.urls')),
     path("api/v1/qm",include('estimation.urls')),
-    path("api/v1/aipo",include('estimation.urls')),
 
 
 
