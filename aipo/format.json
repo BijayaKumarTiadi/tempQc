@@ -1,0 +1,38 @@
+{
+    "company_formats": {
+        "SUN_PHARMACEUTICAL": {
+                "company_name": "SUN_PHARMACEUTICAL",
+                "po_number": "",
+                "po_date": "",
+                "vendor_name": "",
+                "vendor_address": "",
+                "vendor_gst_number": "",
+                "vendor_pan_number": "",
+                "buyer_name": "",
+                "buyer_address": "",
+                "buyer_gst_number": "",
+                "buyer_pan_number": "",
+                "items": [
+                    {
+                        "item_code": "",
+                        "description": "",
+                        "quantity": "",
+                        "unit_price": "",
+                        "amount": "",
+                        "DEL_DATE": ""
+                    },
+                    {
+                        "item_code": "",
+                        "description": "",
+                        "quantity": "",
+                        "unit_price": "",
+                        "amount": "",
+                        "DEL_DATE": ""
+                    }
+                ],
+                "total_amount": "",
+                "delivery_address": "",
+                "delivery_date": ""
+        }
+    }
+}
