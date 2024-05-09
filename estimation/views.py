@@ -837,6 +837,7 @@ class ProcessInputView(APIView):
                             except Exception as e:
                                 # Handle exceptions (e.g., validation errors)
                                 print(f"Failed to insert data into {model.__name__}: {e}")
+                        break
 
                 # End Processes
 
