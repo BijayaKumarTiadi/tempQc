@@ -1,38 +1,354 @@
 {
     "company_formats": {
-        "SUN_PHARMACEUTICAL": {
-                "company_name": "SUN_PHARMACEUTICAL",
-                "po_number": "",
-                "po_date": "",
-                "vendor_name": "",
-                "vendor_address": "",
-                "vendor_gst_number": "",
-                "vendor_pan_number": "",
-                "buyer_name": "",
-                "buyer_address": "",
-                "buyer_gst_number": "",
-                "buyer_pan_number": "",
-                "items": [
-                    {
-                        "item_code": "",
-                        "description": "",
-                        "quantity": "",
-                        "unit_price": "",
-                        "amount": "",
-                        "DEL_DATE": ""
-                    },
-                    {
-                        "item_code": "",
-                        "description": "",
-                        "quantity": "",
-                        "unit_price": "",
-                        "amount": "",
-                        "DEL_DATE": ""
-                    }
-                ],
-                "total_amount": "",
-                "delivery_address": "",
-                "delivery_date": ""
+        "SUN PHARMACEUTICAL": {
+            "company_name": "SUN PHARMACEUTICAL",
+            "po_number": "",
+            "po_date": "",
+            "vendor_name": "",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "only integer  , not string",
+                    "description": "",
+                    "quantity": "",
+                    "unit_price": "",
+                    "amount": "",
+                    "DEL_DATE": ""
+                },
+                {
+                    "item_code": "only integer  , not string",
+                    "description": "",
+                    "quantity": "",
+                    "unit_price": "",
+                    "amount": "",
+                    "DEL_DATE": ""
+                }
+            ],
+            "total_amount": "",
+            "delivery_address": "",
+            "delivery_date": ""
+        },
+
+        "UNIQUE PHARMACEUTICAL": {
+            "company_name": "UNIQUE PHARMACEUTICAL LABS.",
+            "po_number": "",
+            "po_date": "",
+            "vendor_name": "",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "only integer  , not string",
+                    "description": "",
+                    "quantity": "",
+                    "unit_price": "",
+                    "amount": "",
+                    "DEL_DATE": ""
+                },
+                {
+                    "item_code": "only integer  , not string",
+                    "description": "",
+                    "quantity": "",
+                    "unit_price": "",
+                    "amount": "",
+                    "DEL_DATE": ""
+                }
+            ],
+            "total_amount": "",
+            "delivery_address": "",
+            "delivery_date": ""
+        },
+        "PAR FORMULATIONS": {
+            "company_name": "PAR FORMULATIONS PRIVATE LIMITED",
+            "po_number": "PO NO.",
+            "po_date": "ORDER DATE",
+            "vendor_name": "VENDOR",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "only integer  , not string ITEM NO ",
+                    "description": "DESCRIPTION",
+                    "quantity": "QUANTITY",
+                    "unit_price": "UNIT PRICE",
+                    "amount": "TOTAL",
+                    "DEL_DATE": "DUE"
+                },
+                {
+                    "item_code": "only integer  , not string ITEM NO ",
+                    "description": "DESCRIPTION",
+                    "quantity": "QUANTITY",
+                    "unit_price": "UNIT PRICE",
+                    "amount": "TOTAL",
+                    "DEL_DATE": "DUE"
+                }
+                
+            ],
+            "total_amount": "*Order Tota",
+            "delivery_address": "Deliver to:",
+            "delivery_date": ""
+        },
+        "MJ BIOPHARM": {
+            "company_name": "MJ BIOPHARM PVT LTD",
+            "po_number": "PO. NO. :",
+            "po_date": "Date :",
+            "vendor_name": "VENDOR",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "Item Code ",
+                    "description": "Description",
+                    "quantity": "QUANTITY   ",
+                    "unit_price": "UNIT PRICE",
+                    "amount": "DEL. DT",
+                    "DEL_DATE": "DEL. DT"
+                },
+                {
+                    "item_code": "Item Code ",
+                    "description": "Description",
+                    "quantity": "QUANTITY",
+                    "unit_price": "UNIT PRICE",
+                    "amount": "DEL. DT",
+                    "DEL_DATE": "DEL. DT"
+                }
+                
+            ],
+            "total_amount": "TOTAL AMOUNT :",
+            "delivery_address": "Deliver to:",
+            "delivery_date": ""
+        },
+        "MEDLEY PHARMACEUTICALS": {
+            "company_name": "MEDLEY PHARMACEUTICALS LIMITED",
+            "po_number": "P.O.No.:",
+            "po_date": "P.O./Amend Date:",
+            "vendor_name": "VENDOR",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": " Item Code",
+                    "description": "Description",
+                    "quantity": "Quantity   ",
+                    "unit_price": "UNIT PRICE",
+                    "amount": "Value (INR)",
+                    "DEL_DATE": "Dely.Date"
+                },
+                {
+                    "item_code": " Item Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "UNIT PRICE",
+                    "amount": "Value (INR)",
+                    "DEL_DATE": "Dely.Date"
+                }
+                
+            ],
+            "total_amount": "Grand Total",
+            "delivery_address": "Deliver to:",
+            "delivery_date": "Delivery At:"
+        },
+        "Inventia Healthcare": {
+            "company_name": "Inventia Healthcare Limited",
+            "po_number": "PO No :",
+            "po_date": "Dt :",
+            "vendor_name": "",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "Material Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Unit Price",
+                    "amount": "Amount",
+                    "DEL_DATE": "Delivery Schedule"
+                },
+                {
+                    "item_code": "Material Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Unit Price",
+                    "amount": "Amount",
+                    "DEL_DATE": "Delivery Schedule"
+                }
+                
+            ],
+            "total_amount": "TOTAL NET VALUE",
+            "delivery_address": "",
+            "delivery_date": ""
+        },
+        "Harman Finochem": {
+            "company_name": "Harman Finochem Limited",
+            "po_number": "PO No",
+            "po_date": "PO Date",
+            "vendor_name": "",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "Material Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Unit Price",
+                    "amount": "Amount",
+                    "DEL_DATE": "Delivery Schedule"
+                },
+                {
+                    "item_code": "Material Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Unit Price",
+                    "amount": "Amount",
+                    "DEL_DATE": "Delivery Schedule"
+                }
+                
+            ],
+            "total_amount": "Final Order Value",
+            "delivery_address": "",
+            "delivery_date": "Delivery Date"
+        },
+        "Glenmark Pharmaceuticals": {
+            "company_name": "Glenmark Pharmaceuticals Limited",
+            "po_number": "PO. No",
+            "po_date": "PO Date",
+            "vendor_name": "",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "Item Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Rate",
+                    "amount": "Value",
+                    "DEL_DATE": "Delivery Schedule"
+                },
+                {
+                    "item_code": "Item Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Rate",
+                    "amount": "Value",
+                    "DEL_DATE": "Delivery Schedule"
+                }
+                
+            ],
+            "total_amount": "Total Amount",
+            "delivery_address": "",
+            "delivery_date": "Amendment Date"
+        },
+        "Gelnova Laboratories": {
+            "company_name": "Gelnova Laboratories (India) Pvt. Ltd.",
+            "po_number": "PO Number PO/",
+            "po_date": "Date",
+            "vendor_name": "",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "Item Code",
+                    "description": "Description",
+                    "quantity": "Qty",
+                    "unit_price": "Rate",
+                    "amount": "Total in INR",
+                    "DEL_DATE": "Delivery Dt."
+                },
+                {
+                    "item_code": "Item Code",
+                    "description": "Description",
+                    "quantity": "Qty",
+                    "unit_price": "Rate",
+                    "amount": "Total in INR",
+                    "DEL_DATE": "Delivery Dt."
+                }
+                
+            ],
+            "total_amount": "Total",
+            "delivery_address": "",
+            "delivery_date": ""
+        },
+        "MERCK SPECIALITIES": {
+            "company_name": "MERCK SPECIALITIES PRIVATE LIMITED",
+            "po_number": "PO No. :",
+            "po_date": "Date:",
+            "vendor_name": "",
+            "vendor_address": "",
+            "vendor_gst_number": "",
+            "vendor_pan_number": "",
+            "buyer_name": "",
+            "buyer_address": "",
+            "buyer_gst_number": "",
+            "buyer_pan_number": "",
+            "items": [
+                {
+                    "item_code": "Material Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Rate",
+                    "amount": "Value",
+                    "DEL_DATE": "Delivery Date"
+                },
+                {
+                    "item_code": "Material Code",
+                    "description": "Description",
+                    "quantity": "Quantity",
+                    "unit_price": "Rate",
+                    "amount": "Value",
+                    "DEL_DATE": "Delivery Date"
+                }
+                
+            ],
+            "total_amount": "Total value all inclusive",
+            "delivery_address": "",
+            "delivery_date": ""
         }
     }
 }
+
