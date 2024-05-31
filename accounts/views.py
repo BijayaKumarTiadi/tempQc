@@ -23,6 +23,9 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 import os
 
+#Rate limiter for api request
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+
 #simple JWT
 from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -131,6 +134,8 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
         - The financial year details and company profiles are fetched using a custom database query.
         - Ensure the correct user authentication and company ID before accessing the GET endpoint.
     """
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    
     @swagger_auto_schema(
         operation_summary="Authenticate user",
         operation_description="Authenticates the user using the provided credentials.",

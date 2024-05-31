@@ -15,6 +15,19 @@ from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser
 from django.core.exceptions import ValidationError
 
+
+# AIPO Section
+"""
+- > The Database will be the default database . Make sure to change the database accordingly . 
+- > Some API Keys from Gemini inserted to setting , Make sure thats working fine .
+- > For now there is not local llm implimented .
+- > Database queries at utils.py and the AI calls at helper.py , Formats at format.json .
+- > Remember you need to install poppler to use this tool . Download link : https://github.com/oschwartz10612/poppler-windows/releases version : 24.02.0-0
+- > Permission Classes need to be changed .
+- > End of this AIPO there is no dependencies of thease views .
+- > Independent Releases of this app is at : https://github.com/BijayaKumarTiadi/aipo/tree/aipo-rest
+- > This using google-generativeai==0.5.2 .
+"""
 class ProcessPDFView(APIView):
     """
     API View to process a PDF file and return the parsed data.
@@ -49,7 +62,7 @@ class ProcessPDFView(APIView):
             401: 'Unauthorized: Invalid access token',
             500: 'Failed to process the data. Please try again later.'
         },
-        tags=['PDF Processing']
+        tags=['Order Management / AIPO']
     )
     def post(self, request):
         """
@@ -137,7 +150,7 @@ class SaveResponseView(APIView):
             400: openapi.Response(description='Invalid input data'),
             500: openapi.Response(description='Failed to save the data. Please try again later.')
         },
-        tags=['Save Response']
+        tags=['Order Management / AIPO']
     )
     def post(self, request):
         """
@@ -208,7 +221,7 @@ class GetCompanyFormatsView(APIView):
             400: openapi.Response(description='Invalid input data'),
             500: openapi.Response(description='Failed to load company formats')
         },
-        tags=['Company Formats']
+        tags=['Order Management / AIPO']
     )
     def get(self, request):
         """
@@ -229,3 +242,57 @@ class GetCompanyFormatsView(APIView):
             return Response({"status": "Data fetched successfully", "data": formats}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e), "data": {} }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+# End AIPO Section
+
+
+# Order Management Section 
+"""
+Informations : ...
+"""
+
+class Workorder(APIView):
+    """
+    API View to goto Dashboard.
+    """
+
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_summary="Get company formats",
+        operation_description="Get the list of company formats from the format.json file.",
+        responses={
+            200: openapi.Response(
+                description='List of company formats',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_STRING)
+                )
+            ),
+            400: openapi.Response(description='Invalid input data'),
+            500: openapi.Response(description='Failed to load company formats')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def get(self, request):
+        """
+        Handle GET request to return company formats.
+
+        Args:
+            request (HttpRequest): The request object.
+
+        Returns:
+            Response: A list of company format keys or an error message.
+        """
+        try:
+            json_file_path = os.path.join(os.path.dirname(__file__), 'format.json')
+            with open(json_file_path) as json_file:
+                company_formats = json.load(json_file)
+
+            formats = list(company_formats['company_formats'].keys())
+            return Response({"status": "Data fetched successfully", "data": formats}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e), "data": {} }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# End Order Management Section 
