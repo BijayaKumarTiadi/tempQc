@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     # 'django.contrib.staticfiles',  # required for serving swagger ui's css/js files
     'drf_yasg',
-    'aipo',
+    'ordermanagement',
 ]
 
 MIDDLEWARE = [
@@ -207,7 +207,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '5/min',  # 5 requests per minute for anonymous users
+        'user': '100/day'  # 100 requests per day for authenticated users
+    }
 }
 
 
@@ -231,3 +239,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # ADMIN_SITE_HEADER = "Renuka Softech Admin"
 # ADMIN_SITE_TITLE = "SmartMIS Admin Panel"
 # ADMIN_INDEX_TITLE = "Welcome to SmartMIS Admin"
+
+#API Keys of Gemini AI .
+API_KEYS = [
+    "AIzaSyAvBMy97aMQcbkHKSTk-4jW_NOgPtFvzz0",
+    "AIzaSyDSAEmf1BdrOq8pQkxO0ZVIG_I6oNlePOU",
+    "AIzaSyCIIiYbhpt5Dgt6Ct8iFw7ZGEuB9Tj3Hpw",
+]
