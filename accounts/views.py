@@ -146,6 +146,8 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
                 'password': openapi.Schema(type=openapi.TYPE_STRING, description="User password"),
                 'icompanyid': openapi.Schema(type=openapi.TYPE_STRING, description="Company ID"),
                 'db_encode': openapi.Schema(type=openapi.TYPE_STRING, description="Encoded database name"),
+                'captcha': openapi.Schema(type=openapi.TYPE_STRING, description="CAPTCHA response"),
+                'captcha_hash': openapi.Schema(type=openapi.TYPE_STRING, description="CAPTCHA hash"),
             },
             required=['userloginname', 'password', 'icompanyid', 'db_encode']
         ),
@@ -167,6 +169,8 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
             - password (str): User password.
             - icompanyid (str): Company ID associated with the user.
             - db_encode (str): Encoded database name.
+            - captcha (str): CAPTCHA response.
+            - captcha_hash (str): CAPTCHA hash.
 
             Returns:
             - Response: Authenticated user details with access and refresh tokens.
@@ -180,6 +184,11 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
                 password = serializer.validated_data['password']
                 icompanyid = serializer.validated_data['icompanyid']
                 db_encode = serializer.validated_data['db_encode']
+                captcha = serializer.validated_data['captcha']
+                captcha_hash = serializer.validated_data['captcha_hash']
+
+                if not serializer.verify_captcha(captcha, captcha_hash):
+                    return Response({'message': 'Invalid CAPTCHA', 'data': {}}, status=status.HTTP_400_BAD_REQUEST)
                 # Use 'userloginname' instead of 'username' in authenticate 
                 # if you want to use icompanyid then you need to configure the custome authentication function , for now this is only accepts useloginname and password with added user.icompanyid
                 # You can decode the db_encode here -->
@@ -215,8 +224,8 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
         
 
     @swagger_auto_schema(
-        operation_summary="Fetch financial year details",
-        operation_description="Retrieves financial year details and company profiles.",
+        operation_summary="Generate CAPTCHA and fetch financial year details",
+        operation_description="Fetches CAPTCHA question and hash, financial year details, and company profiles.",
         responses={
             200: "Success",
             500: "Internal server error"
@@ -230,9 +239,10 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
             Fetches financial year details and company profiles.
 
             Returns:
-            - Response: Financial year details and company profiles.
+             - Response: CAPTCHA question and hash, financial year details, and company profiles.
         """
         try:
+            captcha_question, captcha_hash = LoginSerializer.create_captcha()
             with connections['default'].cursor() as cursor:
                 cursor.execute("""SELECT path, FinYear FROM admin.finyeardetails;SELECT CompanyName, IcompanyID FROM companyprofile;""")
                 columns1 = [col[0] for col in cursor.description]
@@ -240,7 +250,11 @@ class LoginApi(APIView):#user authentication using 2 method whichh needs encrypt
                 finyear_details = [{columns1[i]: encode_string(str(value)) if columns1[i] == 'path' else str(value) for i, value in enumerate(row)} for row in results1]
                 return Response({
                     "message": "Success",
-                    "data": {"finyear_details": finyear_details}
+                    "data": {
+                        "finyear_details": finyear_details,
+                        "captcha_question": captcha_question,
+                        "captcha_hash": captcha_hash,
+                        }
                 },status=status.HTTP_200_OK)
         except Exception as e:
             error_message = f"Something went wrong: {str(e)}"
