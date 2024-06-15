@@ -5,6 +5,7 @@ from .views import GetCompanyFormatsView
 
 #Order Management Imports
 from .views import Workorder 
+from .views import SeriesView 
 
 urlpatterns = [
 
@@ -15,7 +16,7 @@ urlpatterns = [
 
 
     #Order Management - Dashboard URLS
-    path('/Workorder/', Workorder.as_view(), name='Workorder'), # view create update delete 
+    path('/Workorder/', SeriesView.as_view(), name='Workorder'), # view create update delete 
 
     path('/Workorder/register/', Workorder.as_view(), name='Workorder'), # for detail view
     path('/Workorder/status/', Workorder.as_view(), name='Workorder'), # approve  reject normal , table item_WODetail col - approved

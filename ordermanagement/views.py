@@ -1,20 +1,33 @@
-
+## Work order Imports
+#--Default imports
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import os
 import json
-from .models import ItemWomaster
-from .utils import DataManager
-from .helper import pdf_processing, gemini_1
-
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser
 from django.core.exceptions import ValidationError
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from django.db import connection, connections
+from django.core.exceptions import ObjectDoesNotExist
 
+#--custome imports
+from .permissions import ViewByStaffOnlyPermission
+from accounts.helpers import GetUserData
+
+from .models import ItemWomaster
+from .utils import DataManager
+from .helper import pdf_processing, gemini_1
+from mastersapp.models import Seriesmaster
+from mastersapp.models import Companymaster
+from mastersapp.models import Employeemaster
+
+
+#--Installed Library imports
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 # AIPO Section
 """
@@ -294,5 +307,112 @@ class Workorder(APIView):
         except Exception as e:
             return Response({"error": str(e), "data": {} }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class SeriesView(APIView):
+    """
+    API View to retrieve the list of active series for 'Work Order' documents for a specific company
+    and list of active companies.
+
+    This view requires JWT authentication and specific permissions to be accessed. The series are filtered
+    by 'Work Order' document type, company ID, and their active status. The results are returned in descending
+    order by ID.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Get active 'Work Order' series and active companies",
+        operation_description="Retrieve the list of active series for 'Work Order' documents for the authenticated user's company and list of all active companies.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description='List of active series and companies',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'seriesresp': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'ID': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the series'),
+                                    'Prefix': openapi.Schema(type=openapi.TYPE_STRING, description='Prefix of the series')
+                                }
+                            )
+                        ),
+                        'companiesresp': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'CompanyId': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the company'),
+                                    'CompanyName': openapi.Schema(type=openapi.TYPE_STRING, description='Name of the company')
+                                }
+                            )
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(description='ICompanyID is required'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def get(self, request):
+        """
+        Handle GET request to retrieve the list of active series for 'Work Order' documents and list of active companies.
+
+        Args:
+            request: The HTTP request object.
+
+        Returns:
+            Response: A JSON response containing the list of active series and active companies or an error message.
+        """
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Fetch active 'Work Order' series
+            series = Seriesmaster.objects.filter(
+                doctype='Work Order',
+                icompanyid=icompanyid,
+                isactive=True
+            ).order_by('-id').values('id', 'prefix')
+            
+            series_results = list(series)
+            
+            # Fetch active companies
+            companies = Companymaster.objects.filter(isactive=True).order_by('companyname').values('companyid', 'companyname')
+            companies_results = list(companies)
+
+            # Fetch active employee
+            epmloyee = Employeemaster.objects.filter(isactive=True).order_by('empname').values('empid', 'empname')
+            epmloyee_result = list(epmloyee)
+            
+            # Combine both responses
+            response_data = {
+                'seriesresp': series_results,
+                'companiesresp': companies_results,
+                'employeeresp': epmloyee_result,
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        except ObjectDoesNotExist:
+            return Response({'error': 'No records found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Internal server error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # End Order Management Section 

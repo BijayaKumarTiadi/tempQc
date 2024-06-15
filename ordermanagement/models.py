@@ -41,7 +41,7 @@ class ItemWomaster(models.Model):
         unique_together = (('awoid', 'woid', 'docnotion'),)
 
 
-#models for workworder
+# models for workworder
 
 class ItemWodetail(models.Model):
     icompanyid = models.CharField(db_column='ICompanyID', max_length=10)  
