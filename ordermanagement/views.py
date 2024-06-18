@@ -25,6 +25,7 @@ from mastersapp.models import Companymaster
 from mastersapp.models import Employeemaster
 from mastersapp.models import CompanymasterEx1
 from .models import Paymentterms
+from .models import ItemSpec
 
 
 #-- serializers
@@ -33,6 +34,7 @@ from .serializers import CompanySerializer
 from .serializers import EmployeeSerializer
 from .serializers import PaymentTermsSerializer
 from .serializers import CompanyEx1Serializer
+from .serializers import ItemSpecSerializer
 
 #--Installed Library imports
 from drf_yasg.utils import swagger_auto_schema
@@ -475,9 +477,11 @@ class ClientDataView(APIView):
     )
     def post(self, request):
         client_id = request.data.get('client_id')
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
 
         if not client_id:
-            return Response({'error': 'Client ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Company ID , Client ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             # Fetch contact person details
@@ -495,6 +499,25 @@ class ClientDataView(APIView):
             marketing_executive = Employeemaster.objects.filter(empid=company_details.repid, isactive=True)
             marketing_executive_results = EmployeeSerializer(marketing_executive, many=True).data
 
+            query = """
+                SELECT a.RecordId, a.CompanyName, Get_CompanyNameByRecordId(a.RecordId) as CompanyAddress 
+                FROM companydeladdress as a 
+                WHERE a.IsActive = 1 AND CompanyID = %s AND ICompanyID = %s 
+                ORDER BY a.CompanyName;
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query, [client_id, icompanyid])
+                rows = cursor.fetchall()
+
+            delivery_address_results = [
+                {
+                    'RecordId': row[0],
+                    'CompanyName': row[1],
+                    'CompanyAddress': row[2]
+                }
+                for row in rows
+            ]
+
             # Combine all responses
             response_data = {
                 "message": "Success",
@@ -502,6 +525,7 @@ class ClientDataView(APIView):
                 'contact_person': contact_person_results,
                 'pay_terms': payterms_results,
                 'marketing_executive': marketing_executive_results,
+                'delivery_address': delivery_address_results,
             }}
             return Response(response_data, status=status.HTTP_200_OK)
         
@@ -784,4 +808,227 @@ class ProductDetailsView(APIView):
             }
             for row in rows
         ]
+    
+
+class EstimatedProductView(APIView):
+    """
+    View to retrieve estimated products based on various filters.
+
+    This view handles POST requests to filter and retrieve estimated products
+    from the database based on the provided category, client ID, IPrefix, and product description.
+    - > Not Tested .
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    @swagger_auto_schema(
+        operation_description="Get estimated products based on filters",
+         manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'category': openapi.Schema(type=openapi.TYPE_STRING, description='Product category'),
+                'clientId': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID'),
+                'IPrefix': openapi.Schema(type=openapi.TYPE_STRING, description='IPrefix'),
+                'product_desc': openapi.Schema(type=openapi.TYPE_STRING, description='Product description'),
+            }
+        ),
+        responses={200: 'Success', 400: 'Bad Request'},
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        data = json.loads(request.body)
+        category = data.get('category')
+        clientId = data.get('clientId')
+        IPrefix = data.get('IPrefix')
+        product_desc = data.get('product_desc')
+
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+
+        if not icompanyid or not category or not clientId:
+            return Response({'error': 'Company ID, Category, and Client ID are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        filter_conditions = []
+        filter2_conditions = []
+
+        if IPrefix:
+            filter_conditions.append(f"a.IPrefix LIKE '%%{IPrefix}%%'")
+            filter2_conditions.append(f"a.IPrefix LIKE '%%{IPrefix}%%'")
+
+        if product_desc:
+            filter_conditions.append(f"a.Description LIKE '%%{product_desc}%%'")
+            filter2_conditions.append(f"a.Description LIKE '%%{product_desc}%%'")
+
+        if category == '1':  # Client Product (From Estimation) Category = 1
+            filter_conditions.append(f"a.Clientcompid = '{clientId}'")
+
+        if category == '3':  # All Client Product (From Estimation) Category = 3
+            # No additional filter for category 3
+            pass
+
+        filter_clause = ' AND '.join(filter_conditions) if filter_conditions else '1=1'
+        filter2_clause = ' AND '.join(filter2_conditions) if filter2_conditions else '1=1'
+
+        query = f"""
+            (SELECT c.Description, CAST(a.Quantity AS DECIMAL) AS Quantity, ROUND(a.finalQrate, 3) AS finalQrate,
+                    c.AccCode, c.IPrefix, CONCAT(a.EstimateId, '-', a.RevQuoteNo) AS EstimateId, a.RecordId,
+                    b.FPProductID, a.FinalQUnit
+             FROM quotationnew AS a
+             INNER JOIN quotationnewex2 AS b ON a.recordid = b.recordid
+             INNER JOIN item_fpmasterext AS c ON b.FPProductID = c.productid
+             WHERE b.FPProductID <> '' AND a.finalqrate > 0 AND a.IcompanyId = %s AND a.IsActive = 1 AND c.IsActive = 1 AND {filter_clause}
+             ORDER BY a.QDate DESC)
+            UNION
+            (SELECT ProductDesc AS Description, '' AS Quantity, FinalRate AS finalQrate, '' AS AccCode, '' AS IPrefix,
+                    CONCAT(EstimateID, '-', RevQuoteNo) AS EstimateId, BookID AS RecordId, '' AS FPProductID, QUnit AS FinalQUnit
+             FROM BookQuotation
+             WHERE ICompanyID = %s AND FinalRate > 0 AND IsActive = 1 AND WOCreated = 0 AND {filter2_clause}
+             ORDER BY QDate DESC);
+        """
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(query, [icompanyid, icompanyid])
+                rows = cursor.fetchall()
+
+                products = [
+                    {
+                        'description': row[0],
+                        'quantity': row[1],
+                        'finalQrate': row[2],
+                        'acccode': row[3],
+                        'iprefix': row[4],
+                        'estimateId': row[5],
+                        'recordId': row[6],
+                        'FPProductID': row[7],
+                        'finalQUnit': row[8]
+                    }
+                    for row in rows
+                ]
+            response_data = {
+                    "message": "Success",
+                    "data": {
+                        "Estimated_product_response": products,
+                    }}
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ItemSpecView(APIView):
+    """
+    View to retrieve and save item specifications based on the company ID and item ID.
+
+    This view handles POST requests to filter and retrieve item specifications
+    from the database based on the `ICompanyID` of the logged-in user and the `ItemID` provided in the request payload.
+    It also handles saving new item specifications.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve and save item specifications",
+        operation_description="Retrieve item specifications based on the company ID and item ID. Also allows saving new item specifications.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'item_id': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', example='ITEM123'),
+                'specid': openapi.Schema(type=openapi.TYPE_STRING, description='Specification ID', example='SPEC001'),
+                'description': openapi.Schema(type=openapi.TYPE_STRING, description='Description', example='Description of spec'),
+                'info1': openapi.Schema(type=openapi.TYPE_STRING, description='Additional info 1', example='Additional info 1'),
+                'info2': openapi.Schema(type=openapi.TYPE_STRING, description='Additional info 2', example='Additional info 2')
+            },
+            required=['item_id']
+        ),
+        responses={
+            200: openapi.Response(
+                description='A list of item specifications',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'specid': openapi.Schema(type=openapi.TYPE_STRING, description='Specification ID'),
+                            'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID'),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING, description='Description'),
+                            'icompanyid': openapi.Schema(type=openapi.TYPE_STRING, description='Company ID'),
+                            'info1': openapi.Schema(type=openapi.TYPE_STRING, description='Additional info 1'),
+                            'info2': openapi.Schema(type=openapi.TYPE_STRING, description='Additional info 2')
+                        }
+                    )
+                )
+            ),
+            201: openapi.Response(description='Item specification saved successfully'),
+            400: openapi.Response(description='Company ID and Item ID are required'),
+            404: openapi.Response(description='No item specifications found'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        """
+        Handle POST request to retrieve and save item specifications.
+
+        Parameters:
+        - request (HttpRequest): The request object containing the payload with `item_id`.
+
+        Returns:
+        - Response: A list of item specifications matching the `ICompanyID` of the logged-in user and `ItemID` provided in the payload,
+                    or a success message after saving a new item specification.
+        """
+        data = request.data
+        item_id = data.get('item_id')
+
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+
+        if not icompanyid or not item_id:
+            return Response({'error': 'Company ID and Item ID are required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if all(key in data for key in ['specid', 'description', 'info1', 'info2']):
+                # Save the item specification
+                item_spec = ItemSpec(
+                    specid=data['specid'],
+                    itemid=item_id,
+                    description=data['description'],
+                    icompanyid=icompanyid,
+                    info1=data['info1'],
+                    info2=data['info2']
+                )
+                item_spec.save()
+                return Response({'message': 'Item specification saved successfully'}, status=status.HTTP_201_CREATED)
+            else:
+                item_specs = ItemSpec.objects.filter(icompanyid=icompanyid, itemid=item_id)
+                serializer = ItemSpecSerializer(item_specs, many=True)
+
+                if not item_specs:
+                    return Response({'error': 'No item specifications found'}, status=status.HTTP_404_NOT_FOUND)
+                response_data = {
+                    "message": "Success",
+                    "data": {
+                        "item_specs": serializer.data,
+                    }}
+                return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # End Order Management Section 

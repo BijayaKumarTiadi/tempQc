@@ -6,6 +6,7 @@ from mastersapp.models import Companymaster
 from mastersapp.models import Seriesmaster
 from mastersapp.models import CompanymasterEx1
 from .models import Paymentterms
+from .models import ItemSpec
 # class UploadedFileSerializer(serializers.ModelSerializer):
 #     class Meta:
 #         model = UploadedFile
@@ -37,3 +38,9 @@ class CompanyEx1Serializer(serializers.ModelSerializer):
     class Meta:
         model = CompanymasterEx1
         fields = ['detailid', 'cname']
+
+
+class ItemSpecSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemSpec
+        fields = '__all__'

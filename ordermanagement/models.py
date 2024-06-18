@@ -226,3 +226,17 @@ class Paymentterms(models.Model):
     class Meta:
         managed = False
         db_table = 'paymentterms'
+
+
+class ItemSpec(models.Model):
+    specid = models.CharField(db_column='SpecID', primary_key=True, max_length=10)  
+    itemid = models.CharField(db_column='ItemID', max_length=10)  
+    description = models.CharField(db_column='Description', max_length=100)  
+    icompanyid = models.CharField(db_column='ICompanyID', max_length=20)  
+    info1 = models.CharField(db_column='Info1', max_length=100)  
+    info2 = models.CharField(db_column='Info2', max_length=100)  
+
+    class Meta:
+        managed = False
+        db_table = 'item_spec'
+        unique_together = (('specid', 'itemid', 'description'),)
