@@ -8,17 +8,15 @@
 from django.db import models
 
 
-class Seriesmaster(models.Model):
-    id = models.CharField(db_column='ID', max_length=10)  # Field name made lowercase.
-    prefix = models.CharField(db_column='Prefix', primary_key=True, max_length=30)  # Field name made lowercase.
-    docno = models.CharField(db_column='DocNo', max_length=10)  # Field name made lowercase.
-    sufix = models.CharField(db_column='Sufix', max_length=10)  # Field name made lowercase.
-    doctype = models.CharField(db_column='DocType', max_length=45)  # Field name made lowercase.
-    isactive = models.PositiveIntegerField(db_column='IsActive')  # Field name made lowercase.
-    icompanyid = models.CharField(db_column='ICompanyID', max_length=10)  # Field name made lowercase.
-    seriestype = models.CharField(db_column='SeriesType', max_length=50)  # Field name made lowercase.
+class ItemSpec(models.Model):
+    specid = models.CharField(db_column='SpecID', primary_key=True, max_length=10)  # Field name made lowercase.
+    itemid = models.CharField(db_column='ItemID', max_length=10)  # Field name made lowercase.
+    description = models.CharField(db_column='Description', max_length=100)  # Field name made lowercase.
+    icompanyid = models.CharField(db_column='ICompanyID', max_length=20)  # Field name made lowercase.
+    info1 = models.CharField(db_column='Info1', max_length=100)  # Field name made lowercase.
+    info2 = models.CharField(db_column='Info2', max_length=100)  # Field name made lowercase.
 
     class Meta:
         managed = False
-        db_table = 'seriesmaster'
-        unique_together = (('prefix', 'icompanyid', 'doctype'),)
+        db_table = 'item_spec'
+        unique_together = (('specid', 'itemid', 'description'),)

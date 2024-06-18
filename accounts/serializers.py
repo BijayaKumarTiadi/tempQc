@@ -1,13 +1,8 @@
 # yourapp/serializers.py
 from rest_framework import serializers
-from .models import CustomUser
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-from django.db import connection, connections
 import random
 import hashlib
 #Private imports
-from .encodedDbs import decode_string
 
 
 class LoginSerializer(serializers.Serializer):
@@ -56,7 +51,7 @@ class LoginSerializer(serializers.Serializer):
 
         return data
 
-    def verify_captcha(self, captcha, captcha_hash):
+    def verify_captcha(self, captcha, captcha_hash): #-> bool
         """
         Helper method to verify the correctness of the captcha.
 
