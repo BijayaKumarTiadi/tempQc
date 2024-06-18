@@ -213,3 +213,16 @@ class Companydelqtydate(models.Model):
     class Meta:
         managed = False
         db_table = 'CompanyDelQtyDate'
+
+
+
+
+class Paymentterms(models.Model):
+    payid = models.CharField(db_column='PayID', primary_key=True, max_length=10) 
+    narration = models.CharField(db_column='Narration', max_length=200) 
+    interestper = models.FloatField(db_column='InterestPer') 
+    isactive = models.PositiveIntegerField(db_column='IsActive') 
+
+    class Meta:
+        managed = False
+        db_table = 'paymentterms'

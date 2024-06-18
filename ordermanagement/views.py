@@ -23,7 +23,16 @@ from .helper import pdf_processing, gemini_1
 from mastersapp.models import Seriesmaster
 from mastersapp.models import Companymaster
 from mastersapp.models import Employeemaster
+from mastersapp.models import CompanymasterEx1
+from .models import Paymentterms
 
+
+#-- serializers
+from .serializers import SeriesSerializer
+from .serializers import CompanySerializer
+from .serializers import EmployeeSerializer
+from .serializers import PaymentTermsSerializer
+from .serializers import CompanyEx1Serializer
 
 #--Installed Library imports
 from drf_yasg.utils import swagger_auto_schema
@@ -264,49 +273,6 @@ class GetCompanyFormatsView(APIView):
 Informations : ...
 """
 
-class Workorder(APIView):
-    """
-    API View to goto Dashboard.
-    """
-
-    permission_classes = [AllowAny]
-
-    @swagger_auto_schema(
-        operation_summary="Get company formats",
-        operation_description="Get the list of company formats from the format.json file.",
-        responses={
-            200: openapi.Response(
-                description='List of company formats',
-                schema=openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_STRING)
-                )
-            ),
-            400: openapi.Response(description='Invalid input data'),
-            500: openapi.Response(description='Failed to load company formats')
-        },
-        tags=['Order Management / Workorder']
-    )
-    def get(self, request):
-        """
-        Handle GET request to return company formats.
-
-        Args:
-            request (HttpRequest): The request object.
-
-        Returns:
-            Response: A list of company format keys or an error message.
-        """
-        try:
-            json_file_path = os.path.join(os.path.dirname(__file__), 'format.json')
-            with open(json_file_path) as json_file:
-                company_formats = json.load(json_file)
-
-            formats = list(company_formats['company_formats'].keys())
-            return Response({"status": "Data fetched successfully", "data": formats}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e), "data": {} }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class SeriesView(APIView):
     """
@@ -389,25 +355,32 @@ class SeriesView(APIView):
                 doctype='Work Order',
                 icompanyid=icompanyid,
                 isactive=True
-            ).order_by('-id').values('id', 'prefix')
-            
-            series_results = list(series)
+            ).order_by('-id')
+            series_results = SeriesSerializer(series, many=True).data
             
             # Fetch active companies
-            companies = Companymaster.objects.filter(isactive=True).order_by('companyname').values('companyid', 'companyname')
-            companies_results = list(companies)
+            companies = Companymaster.objects.filter(isactive=True).order_by('companyname')
+            companies_results = CompanySerializer(companies, many=True).data
 
-            # Fetch active employee
-            epmloyee = Employeemaster.objects.filter(isactive=True).order_by('empname').values('empid', 'empname')
-            epmloyee_result = list(epmloyee)
-            
-            # Combine both responses
+            # Fetch active employees
+            employees = Employeemaster.objects.filter(isactive=True).order_by('empname')
+            employees_results = EmployeeSerializer(employees, many=True).data
+
+            # Fetch active payment terms
+            payment_terms = Paymentterms.objects.filter(isactive=True)
+            payment_terms_results = PaymentTermsSerializer(payment_terms, many=True).data
+
+            # Combine all responses
             response_data = {
+                "message": "Success",
+                "data": {
                 'seriesresp': series_results,
                 'companiesresp': companies_results,
-                'employeeresp': epmloyee_result,
+                'marketingExe': employees_results,
+                'pay_terms': payment_terms_results,
             }
-            
+            }
+
             return Response(response_data, status=status.HTTP_200_OK)
         
         except ObjectDoesNotExist:
@@ -415,4 +388,400 @@ class SeriesView(APIView):
         except Exception as e:
             return Response({'error': f'Internal server error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class ClientDataView(APIView):
+    """
+    API View to retrieve contact person details, payment terms, and marketing executive
+    based on the client ID provided in the request payload.
+
+    This view requires JWT authentication and specific permissions to be accessed.
+    The data is fetched from different models and combined into a single response.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Fetch client-related data",
+        operation_description="Retrieve contact person details, payment terms, and marketing executive based on the client ID.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'client_id': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID')
+            },
+            required=['client_id']
+        ),
+        responses={
+            200: openapi.Response(
+                description='Client-related data',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'contact_person': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'detailid': openapi.Schema(type=openapi.TYPE_STRING, description='Detail ID'),
+                                    'cname': openapi.Schema(type=openapi.TYPE_STRING, description='Contact Name'),
+                                    'deptpost': openapi.Schema(type=openapi.TYPE_STRING, description='Department/Post'),
+                                    'contactno': openapi.Schema(type=openapi.TYPE_STRING, description='Contact Number'),
+                                    'mobileno': openapi.Schema(type=openapi.TYPE_STRING, description='Mobile Number'),
+                                    'faxno': openapi.Schema(type=openapi.TYPE_STRING, description='Fax Number'),
+                                    'email': openapi.Schema(type=openapi.TYPE_STRING, description='Email'),
+                                    'address': openapi.Schema(type=openapi.TYPE_STRING, description='Address'),
+                                    'city': openapi.Schema(type=openapi.TYPE_STRING, description='City'),
+                                    'state': openapi.Schema(type=openapi.TYPE_STRING, description='State'),
+                                }
+                            )
+                        ),
+                        'pay_terms': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'payid': openapi.Schema(type=openapi.TYPE_STRING, description='Payment Term ID'),
+                                    'narration': openapi.Schema(type=openapi.TYPE_STRING, description='Narration')
+                                }
+                            )
+                        ),
+                        'marketing_executive': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'empid': openapi.Schema(type=openapi.TYPE_STRING, description='Employee ID'),
+                                    'empname': openapi.Schema(type=openapi.TYPE_STRING, description='Employee Name')
+                                }
+                            )
+                        ),
+                    }
+                )
+            ),
+            400: openapi.Response(description='Client ID is required'),
+            404: openapi.Response(description='No company found with the given ID'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        client_id = request.data.get('client_id')
+
+        if not client_id:
+            return Response({'error': 'Client ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Fetch contact person details
+            contact_person = CompanymasterEx1.objects.filter(companyid=client_id, isactive=True)
+            contact_person_results = CompanyEx1Serializer(contact_person, many=True).data
+
+            # Fetch payterms and marketing executive
+            company_details = Companymaster.objects.filter(companyid=client_id, isactive=True).first()
+            if not company_details:
+                return Response({'error': 'No company found with the given ID'}, status=status.HTTP_404_NOT_FOUND)
+
+            payterms = Paymentterms.objects.filter(payid=company_details.payid, isactive=True)
+            payterms_results = PaymentTermsSerializer(payterms, many=True).data
+
+            marketing_executive = Employeemaster.objects.filter(empid=company_details.repid, isactive=True)
+            marketing_executive_results = EmployeeSerializer(marketing_executive, many=True).data
+
+            # Combine all responses
+            response_data = {
+                "message": "Success",
+                "data": {
+                'contact_person': contact_person_results,
+                'pay_terms': payterms_results,
+                'marketing_executive': marketing_executive_results,
+            }}
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+'''
+class ProductDetailsViewsTry(APIView):
+    """
+    API View to retrieve product details based on the company ID and additional filters.
+
+    This view requires JWT authentication and specific permissions to be accessed.
+    The data is fetched from the ItemFpmasterext and related models, filtered by the provided parameters.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Fetch product details",
+        operation_description="Retrieve product details based on the company ID and additional filters.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'category': openapi.Schema(type=openapi.TYPE_STRING, description='Category', enum=['1', '2']),
+                'clientId': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID'),
+                'IPrefix': openapi.Schema(type=openapi.TYPE_STRING, description='IPrefix'),
+                'product_desc': openapi.Schema(type=openapi.TYPE_STRING, description='Product Description')
+            },
+            required=['category', 'clientId']
+        ),
+        responses={
+            200: openapi.Response(
+                description='Product details',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'productid': openapi.Schema(type=openapi.TYPE_STRING, description='Product ID'),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING, description='Product Name'),
+                            'manufacturer': openapi.Schema(type=openapi.TYPE_STRING, description='Manufacturer'),
+                            'quality': openapi.Schema(type=openapi.TYPE_STRING, description='Quality'),
+                            'rol': openapi.Schema(type=openapi.TYPE_NUMBER, description='Reorder Level'),
+                            'unit_name': openapi.Schema(type=openapi.TYPE_STRING, description='Unit Name'),
+                            'iprefix': openapi.Schema(type=openapi.TYPE_STRING, description='IPrefix'),
+                            'class_name': openapi.Schema(type=openapi.TYPE_STRING, description='Class Name'),
+                            'acccode': openapi.Schema(type=openapi.TYPE_STRING, description='Account Code'),
+                            'packdetails': openapi.Schema(type=openapi.TYPE_STRING, description='Pack Details')
+                        }
+                    )
+                )
+            ),
+            400: openapi.Response(description='Company ID, Category, and Client ID are required'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+
+        data = json.loads(request.body)
+        category = data.get('category')
+        clientId = data.get('clientId')
+        IPrefix = data.get('IPrefix')
+        product_desc = data.get('product_desc')
+
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+
+        if not icompanyid or not category or not clientId:
+            return Response({'error': 'Company ID, Category, and Client ID are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        filter_conditions = []
+
+        if IPrefix:
+            filter_conditions.append(f"a.IPrefix LIKE '%%{IPrefix}%%'")
+
+        if product_desc:
+            filter_conditions.append(f"a.Description LIKE '%%{product_desc}%%'")
+
+        if category == '1':  # Client Product
+            filter_conditions.append(f"a.Manufacturer = '{clientId}'")
+
+        if category == '2':  # Mother Company Product
+            filter_conditions.append(f"h.motherid = '{clientId}'")
+
+        where_clause = ' AND '.join(filter_conditions) if filter_conditions else '1=1'
+
+        query = f"""
+            SELECT a.ProductID, REPLACE(a.Description, '\"', '') as ProductName, a.Manufacturer, a.Quality,
+                   a.ROL as caseselect, b.UnitName, a.IPrefix, d.classname, a.AccCode, a.PackDetails
+            FROM item_fpmasterext AS a
+            INNER JOIN item_unit_master AS b ON a.UOM = b.UnitID
+            INNER JOIN item_group_master AS c ON a.GroupID = c.GroupID
+            INNER JOIN item_class AS d ON a.PackingUnit = d.classid
+            INNER JOIN companymaster AS h ON a.Manufacturer = h.companyid
+            WHERE a.ICompanyID = %s AND a.IsActive = 1 AND a.GroupID = '00008'
+                  AND a.Type = 'F' AND {where_clause}
+            GROUP BY a.Description, a.ProductID, a.Manufacturer, a.Quality, b.UnitName
+        """
+
+        with connection.cursor() as cursor:
+            cursor.execute(query, [icompanyid])
+            rows = cursor.fetchall()
+
+            products = [
+                {
+                    'productid': row[0],
+                    'description': row[1],
+                    'manufacturer': row[2],
+                    'quality': row[3],
+                    'rol': row[4],
+                    'unit_name': row[5],
+                    'iprefix': row[6],
+                    'class_name': row[7],
+                    'acccode': row[8],
+                    'packdetails': row[9]
+                }
+                for row in rows
+            ]
+
+            return Response(products, status=status.HTTP_200_OK)
+'''
+
+
+class ProductDetailsView(APIView):
+    """
+    API View to retrieve product details based on the company ID and additional filters.
+
+    This view requires JWT authentication and specific permissions to be accessed.
+    The data is fetched from the ItemFpmasterext and related models, filtered by the provided parameters.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Fetch product details",
+        operation_description="Retrieve product details based on the company ID and additional filters.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'category': openapi.Schema(type=openapi.TYPE_STRING, description='Category', enum=['1', '2']),
+                'clientId': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID'),
+                'IPrefix': openapi.Schema(type=openapi.TYPE_STRING, description='IPrefix'),
+                'product_desc': openapi.Schema(type=openapi.TYPE_STRING, description='Product Description')
+            },
+            required=['category', 'clientId']
+        ),
+        responses={
+            200: openapi.Response(
+                description='Product details',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'productid': openapi.Schema(type=openapi.TYPE_STRING, description='Product ID'),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING, description='Product Name'),
+                            'manufacturer': openapi.Schema(type=openapi.TYPE_STRING, description='Manufacturer'),
+                            'quality': openapi.Schema(type=openapi.TYPE_STRING, description='Quality'),
+                            'rol': openapi.Schema(type=openapi.TYPE_NUMBER, description='Reorder Level'),
+                            'unit_name': openapi.Schema(type=openapi.TYPE_STRING, description='Unit Name'),
+                            'iprefix': openapi.Schema(type=openapi.TYPE_STRING, description='IPrefix'),
+                            'class_name': openapi.Schema(type=openapi.TYPE_STRING, description='Class Name'),
+                            'acccode': openapi.Schema(type=openapi.TYPE_STRING, description='Account Code'),
+                            'packdetails': openapi.Schema(type=openapi.TYPE_STRING, description='Pack Details')
+                        }
+                    )
+                )
+            ),
+            400: openapi.Response(description='Company ID, Category, and Client ID are required'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        data = json.loads(request.body)
+        category = data.get('category')
+        clientId = data.get('clientId')
+        IPrefix = data.get('IPrefix')
+        product_desc = data.get('product_desc')
+
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+
+        if not icompanyid or not category or not clientId:
+            return Response({'error': 'Company ID, Category, and Client ID are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        filter_conditions = self.build_filter_conditions(IPrefix, product_desc, category, clientId)
+        query = self.build_query(filter_conditions)
+
+        try:
+            products = self.fetch_products(query, icompanyid)
+            response_data = {
+                "message": "Success",
+                "data": {
+                    "product_response": products,
+                }}
+            return Response(response_data,status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def build_filter_conditions(self, IPrefix, product_desc, category, clientId):
+        """
+        Build the filter conditions for the SQL query based on the input parameters.
+        """
+        filter_conditions = []
+
+        if IPrefix:
+            filter_conditions.append(f"a.IPrefix LIKE '%%{IPrefix}%%'")
+
+        if product_desc:
+            filter_conditions.append(f"a.Description LIKE '%%{product_desc}%%'")
+
+        if category == '1':  # Client Product
+            filter_conditions.append(f"a.Manufacturer = '{clientId}'")
+
+        if category == '2':  # Mother Company Product
+            filter_conditions.append(f"h.motherid = '{clientId}'")
+
+        return ' AND '.join(filter_conditions) if filter_conditions else '1=1'
+
+    def build_query(self, filter_conditions):
+        """
+        Build the SQL query string using the provided filter conditions.
+        """
+        return f"""
+            SELECT a.ProductID, REPLACE(a.Description, '\"', '') as ProductName, a.Manufacturer, a.Quality,
+                   a.ROL as caseselect, b.UnitName, a.IPrefix, d.classname, a.AccCode, a.PackDetails
+            FROM item_fpmasterext AS a
+            INNER JOIN item_unit_master AS b ON a.UOM = b.UnitID
+            INNER JOIN item_group_master AS c ON a.GroupID = c.GroupID
+            INNER JOIN item_class AS d ON a.PackingUnit = d.classid
+            INNER JOIN companymaster AS h ON a.Manufacturer = h.companyid
+            WHERE a.ICompanyID = %s AND a.IsActive = 1 AND a.GroupID = '00008'
+                  AND a.Type = 'F' AND {filter_conditions}
+            GROUP BY a.Description, a.ProductID, a.Manufacturer, a.Quality, b.UnitName
+        """
+
+    def fetch_products(self, query, icompanyid):
+        """
+        Execute the SQL query and fetch the product details.
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(query, [icompanyid])
+            rows = cursor.fetchall()
+
+        return [
+            {
+                'productid': row[0],
+                'description': row[1],
+                'manufacturer': row[2],
+                'quality': row[3],
+                'rol': row[4],
+                'unit_name': row[5],
+                'iprefix': row[6],
+                'class_name': row[7],
+                'acccode': row[8],
+                'packdetails': row[9]
+            }
+            for row in rows
+        ]
 # End Order Management Section 
