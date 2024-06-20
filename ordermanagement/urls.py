@@ -21,8 +21,8 @@ urlpatterns = [
     #Order Management - Dashboard URLS
     path('/Workorder/', SeriesView.as_view(), name='Workorder'), # view create update delete 
     path('/Workorder/client-data', ClientDataView.as_view(), name='client-data'),
-    path('/Workorder/product-details/', ProductDetailsView.as_view(), name='product-details'),
-    path('/Workorder/estimated-product-details/', EstimatedProductView.as_view(), name='estimated-product-details'),
+    path('/Workorder/product-by-fp/', ProductDetailsView.as_view(), name='product-details'),
+    path('/Workorder/product-by-estimation/', EstimatedProductView.as_view(), name='estimated-product-details'),
     path('/Workorder/item-spec/', ItemSpecView.as_view(), name='item-spec'),
 
     # path('/Workorder/register/', Workorder.as_view(), name='Workorder'), # for detail view

@@ -289,7 +289,7 @@ class SeriesView(APIView):
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
-        operation_summary="Get active 'Work Order' series and active companies",
+        operation_summary="Get active 'Work Order' series and active companies  On Page Load Dropdown Lists . ",
         operation_description="Retrieve the list of active series for 'Work Order' documents for the authenticated user's company and list of all active companies.",
         manual_parameters=[
             openapi.Parameter(
@@ -313,7 +313,8 @@ class SeriesView(APIView):
                                 type=openapi.TYPE_OBJECT,
                                 properties={
                                     'ID': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the series'),
-                                    'Prefix': openapi.Schema(type=openapi.TYPE_STRING, description='Prefix of the series')
+                                    'Prefix': openapi.Schema(type=openapi.TYPE_STRING, description='Prefix of the series'),
+                                    'Isactive': openapi.Schema(type=openapi.TYPE_STRING, description='Active Status of the Series')
                                 }
                             )
                         ),
@@ -356,7 +357,7 @@ class SeriesView(APIView):
             series = Seriesmaster.objects.filter(
                 doctype='Work Order',
                 icompanyid=icompanyid,
-                isactive=True
+                # isactive=True
             ).order_by('-id')
             series_results = SeriesSerializer(series, many=True).data
             
@@ -403,7 +404,7 @@ class ClientDataView(APIView):
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
-        operation_summary="Fetch client-related data",
+        operation_summary="Fetch client-related data at Dropdown On Change ",
         operation_description="Retrieve contact person details, payment terms, and marketing executive based on the client ID.",
         manual_parameters=[
             openapi.Parameter(
@@ -672,7 +673,7 @@ class ProductDetailsView(APIView):
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
-        operation_summary="Fetch product details",
+        operation_summary="Fetch finish product lists by FP History Form",
         operation_description="Retrieve product details based on the company ID and additional filters.",
         manual_parameters=[
             openapi.Parameter(
@@ -822,6 +823,7 @@ class EstimatedProductView(APIView):
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
     
     @swagger_auto_schema(
+        operation_summary="Fetch finish product lists by Estimation Finalization.",
         operation_description="Get estimated products based on filters",
          manual_parameters=[
             openapi.Parameter(

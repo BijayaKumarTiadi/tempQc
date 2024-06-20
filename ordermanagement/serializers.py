@@ -17,7 +17,7 @@ from .models import ItemSpec
 class SeriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Seriesmaster
-        fields = ['id', 'prefix']
+        fields = ['id', 'prefix','isactive']
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
