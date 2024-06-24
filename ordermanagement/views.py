@@ -503,11 +503,12 @@ class ClientDataView(APIView):
             query = """
                 SELECT a.RecordId, a.CompanyName, Get_CompanyNameByRecordId(a.RecordId) as CompanyAddress 
                 FROM companydeladdress as a 
-                WHERE a.IsActive = 1 AND CompanyID = %s AND ICompanyID = %s 
+                WHERE a.IsActive = 1 AND CompanyID = %s 
                 ORDER BY a.CompanyName;
             """
+            # AND ICompanyID = %s add for future reference , fetch by icompany id only .
             with connection.cursor() as cursor:
-                cursor.execute(query, [client_id, icompanyid])
+                cursor.execute(query, [client_id])
                 rows = cursor.fetchall()
 
             delivery_address_results = [
