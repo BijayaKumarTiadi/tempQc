@@ -12,7 +12,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.db import connection, connections
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.db import transaction
+from rest_framework import serializers
 #--custome imports
 from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
@@ -26,7 +27,7 @@ from mastersapp.models import Employeemaster
 from mastersapp.models import CompanymasterEx1
 from .models import Paymentterms
 from .models import ItemSpec
-
+from .models import Mypref
 
 #-- serializers
 from .serializers import SeriesSerializer
@@ -35,6 +36,10 @@ from .serializers import EmployeeSerializer
 from .serializers import PaymentTermsSerializer
 from .serializers import CompanyEx1Serializer
 from .serializers import ItemSpecSerializer
+from .serializers import MyprefSerializer
+from .serializers import SeriesMasterSaveSerializer
+from .serializers import SeriesMasterSaveSerializer, WOMasterSerializer, WODetailSerializer, CompanyDelQtyDateSerializer
+
 
 #--Installed Library imports
 from drf_yasg.utils import swagger_auto_schema
@@ -373,6 +378,10 @@ class SeriesView(APIView):
             payment_terms = Paymentterms.objects.filter(isactive=True)
             payment_terms_results = PaymentTermsSerializer(payment_terms, many=True).data
 
+            # Fetch prefs 
+            mypref_load = Mypref.objects.filter(heading="WorkOrder")
+            mypref_load_results = MyprefSerializer(mypref_load, many=True).data
+
             # Combine all responses
             response_data = {
                 "message": "Success",
@@ -381,6 +390,7 @@ class SeriesView(APIView):
                 'companiesresp': companies_results,
                 'marketingExe': employees_results,
                 'pay_terms': payment_terms_results,
+                'prefs': mypref_load_results,
             }
             }
 
@@ -479,7 +489,7 @@ class ClientDataView(APIView):
     def post(self, request):
         client_id = request.data.get('client_id')
         user = GetUserData.get_user(request)
-        icompanyid = user.icompanyid
+        icompanyid = user.icompanyid # keeping for future reference
 
         if not client_id:
             return Response({'error': 'Company ID , Client ID is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1032,6 +1042,391 @@ class ItemSpecView(APIView):
                 return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class RateListView(APIView):
+    """
+    API View to retrieve item rates based on the company ID, item ID, and preferences.
+
+    This view handles POST requests to filter and retrieve item rates from the database based on the `ICompanyID`
+    of the logged-in user, the `ItemID`, and the `prefs` provided in the request payload.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve item rates",
+        operation_description="Retrieve item rates based on the company ID, item ID, and preferences.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'item_id': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', example='ITEM123'),
+                'prefs': openapi.Schema(type=openapi.TYPE_STRING, description='Preferences', enum=['Yes', 'No']),
+            },
+            required=['item_id', 'prefs']
+        ),
+        responses={
+            200: openapi.Response(
+                description='A list of item rates',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'data': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'AccCode': openapi.Schema(type=openapi.TYPE_STRING, description='Account Code'),
+                                    'IPrefix': openapi.Schema(type=openapi.TYPE_STRING, description='IPrefix'),
+                                    'MinQty': openapi.Schema(type=openapi.TYPE_NUMBER, description='Minimum Quantity'),
+                                    'MaxQty': openapi.Schema(type=openapi.TYPE_NUMBER, description='Maximum Quantity'),
+                                    'Rate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate'),
+                                    'ThousandRate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Thousand Rate'),
+                                    'JobNo': openapi.Schema(type=openapi.TYPE_STRING, description='Job Number'),
+                                    'ItemDesc': openapi.Schema(type=openapi.TYPE_STRING, description='Item Description'),
+                                    'Quantity': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity'),
+                                    'RateInThousand': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate in Thousand'),
+                                    'RateUnit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit')
+                                }
+                            )
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(description='Company ID and Item ID are required'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        """
+        Handle POST request to retrieve item rates based on company ID, item ID, and preferences.
+
+        Parameters:
+        - request (HttpRequest): The request object containing the payload with `item_id` and `prefs`.
+
+        Returns:
+        - Response: A list of item rates matching the `ICompanyID` of the logged-in user and `ItemID` provided in the payload,
+                    or an error message.
+        """
+        try:
+            data = request.data
+            item_id = data.get('item_id')
+            prefs = data.get('prefs')
+
+            user = GetUserData.get_user(request)
+            icompanyid = user.icompanyid
+
+            if not icompanyid or not item_id:
+                return Response({'error': 'Company ID and Item ID are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if prefs == "Yes":
+                query = """
+                        SELECT b.acccode AS AccCode, b.iprefix AS IPrefix, a.MinQty, a.MaxQty, a.Rate, a.thousandrate AS ThousandRate 
+                        FROM item_ratelist AS a
+                        JOIN Item_fpmasterext AS b ON a.Itemid = b.productid 
+                        WHERE b.groupid = '00008' AND b.isactive != '0' 
+                        AND a.Itemid = %s AND b.icompanyid = %s;
+                        """
+                params = [item_id, icompanyid]
+            elif prefs == "No":
+                query = """
+                       SELECT JobNo, ItemDesc, Quantity, Rate, RateInThousand, RateUnit 
+                       FROM item_wodetail 
+                       WHERE itemid = %s AND IsActive = '0' 
+                       AND IcompanyID = %s 
+                       LIMIT 5;
+                        """
+                params = [item_id, icompanyid]
+            else:
+                return Response({'error': 'Invalid prefs value'}, status=status.HTTP_400_BAD_REQUEST)
+
+            with connection.cursor() as cursor:
+                cursor.execute(query, params)
+                columns = [col[0] for col in cursor.description]
+                data = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            response_data = {
+                "message": "Success",
+                "data": data,
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+class SaveWithSeriesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Save data with an auto-generated series ID",
+        operation_description="This endpoint increments the docno in the Seriesmaster table and uses the new docno to save data in other tables.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='532'),
+            },
+            required=['id']
+        ),
+        responses={
+            201: openapi.Response(
+                description='Data saved successfully',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Generated series ID')
+                    }
+                )
+            ),
+            400: openapi.Response(description='Invalid prefix or company ID'),
+            404: openapi.Response(description='Seriesmaster record not found'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        data=request.data
+
+        id = data.get('id')
+
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+
+        serializer = SeriesMasterSaveSerializer(data=data, context={'request': request, 'icompanyid': icompanyid,'id':id})
+
+        if serializer.is_valid():
+            new_woid = serializer.save()
+
+            return Response(
+                {'message': 'Data saved successfully', 'new_woid':new_woid},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class WOCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Create Work Order",
+        operation_description="Create Work Order and related records.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'wo_master_data': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'SeriesID': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
+                        'wodate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Work Order Date', example='2022-03-10 00:00:00'),
+                        'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
+                        'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status', example='Open'),
+                        'wono': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order Number', example='WO123'),
+                        'podate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='PO Date', example='2024-06-25 22:16:44'),
+                        'poreceivedate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='PO Recieve Date', example='2022-03-10 00:00:00'),
+                        'execid': openapi.Schema(type=openapi.TYPE_STRING, description='Exec ID', example='EXEC123'),
+                        'orderedby': openapi.Schema(type=openapi.TYPE_STRING, description='Ordered By', example='John Doe'),
+                        'paymentday': openapi.Schema(type=openapi.TYPE_INTEGER, description='Payment Day', example=30),
+                        'paymenttype': openapi.Schema(type=openapi.TYPE_STRING, description='Payment Type', example='Credit'),
+                        'filelocation': openapi.Schema(type=openapi.TYPE_STRING, description='File Location', example='/path/to/file'),
+                        'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', example='Some remarks'),
+                        'proofingchk': openapi.Schema(type=openapi.TYPE_INTEGER, description='Proofing Check', example=1),
+                        
+                    },
+                    required=['SeriesID', 'WODate', 'ClientId']
+                ),
+                'wo_detail_data': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            # 'JobNo': openapi.Schema(type=openapi.TYPE_STRING, description='Job Number', example='JOB123'),
+                            'itemdesc': openapi.Schema(type=openapi.TYPE_STRING, description='Item Description', example='Item Description'),
+                            'itemcode': openapi.Schema(type=openapi.TYPE_STRING, description='Item Code', example='ITEM123'),
+                            'codeno': openapi.Schema(type=openapi.TYPE_STRING, description='Code Number', example='CODE123'),
+                            'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', example='ITEM123'),
+                            'quantity': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity', example=100),
+                            'qtyplus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Plus', example=10),
+                            'qtyminus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Minus', example=5),
+                            'rate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate', example=10.5),
+                            'actualrate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Actual Rate', example=10.5),
+                            'unitid': openapi.Schema(type=openapi.TYPE_STRING, description='Unit ID', example='UNIT123'),
+                            'rateinthousand': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate in Thousand', example=10000),
+                            'rateunit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit', example='kg'),
+                            'artworkno': openapi.Schema(type=openapi.TYPE_STRING, description='Artwork Number', example='ART123'),
+                            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Amount', example=1050.75),
+                            'percentvar': openapi.Schema(type=openapi.TYPE_NUMBER, description='Percent Variation', example=2.5),
+                            'freight': openapi.Schema(type=openapi.TYPE_STRING, description='Freight', example='0'),
+                            'specification': openapi.Schema(type=openapi.TYPE_STRING, description='Specification', example='SPEC123'),
+                            'ref': openapi.Schema(type=openapi.TYPE_STRING, description='Reference', example='REF123'),
+                            'color': openapi.Schema(type=openapi.TYPE_STRING, description='Color', example='Red'),
+                            'cp': openapi.Schema(type=openapi.TYPE_STRING, description='CP', example='P'),
+                            'docnotion': openapi.Schema(type=openapi.TYPE_STRING, description='Doc Notion', example='DOC123'),
+                            'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', example='Some remarks'),
+                            'transfer_wo': openapi.Schema(type=openapi.TYPE_INTEGER, description='Transfer WO', example=0),
+                            'hold': openapi.Schema(type=openapi.TYPE_INTEGER, description='Hold', example=0),
+                            'dontshowforjc': openapi.Schema(type=openapi.TYPE_INTEGER, description='Don\'t Show for JC', example=0),
+                            'artworkreceive': openapi.Schema(type=openapi.TYPE_INTEGER, description='Artwork Received', example=0),
+                            'closedate': openapi.Schema(type=openapi.TYPE_STRING, description='Closed', format=openapi.FORMAT_DATE, example='2060-01-01 00:00:00'),
+                            'templateid': openapi.Schema(type=openapi.TYPE_STRING, description='Template ID', example='TEMPLATE123'),
+                            'rowno': openapi.Schema(type=openapi.TYPE_INTEGER, description='Rowno', example=0),
+                            'del_address': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'recordid_old': openapi.Schema(type=openapi.TYPE_STRING, description='Old Record ID', example='OLD123'),
+                                        'JobNo': openapi.Schema(type=openapi.TYPE_STRING, description='Job Number', example='JOB123'),
+                                        'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
+                                        'delrecordid': openapi.Schema(type=openapi.TYPE_STRING, description='Delivery Record ID', example='DEL123'),
+                                        'billingrecordid': openapi.Schema(type=openapi.TYPE_STRING, description='Billing Record ID', example='BILL123'),
+                                        'schdeliverydate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Scheduled Delivery Date', example='2022-03-10 00:00:00'),
+                                        'lastdeliverydate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Last Delivery Date', example='2022-03-10 00:00:00'),
+                                        'qtytodeliver': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Delivered', example=50),
+                                        'specid': openapi.Schema(type=openapi.TYPE_STRING, description='Specification ID', example='SPEC123'),
+                                        'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', example='ITEM123'),
+                                        'qtydelivered': openapi.Schema(type=openapi.TYPE_NUMBER, description='Qty Delivered', example='0.00'),
+                                        'Rowno': openapi.Schema(type=openapi.TYPE_INTEGER, description='ROW No', example='0'),
+                                    }
+                                )
+                            )
+                        }
+                    )
+                )
+            },
+            required=['wo_master_data', 'wo_detail_data']
+        ),
+        responses={
+            201: openapi.Response(
+                description='Data saved successfully',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'new_woid': openapi.Schema(type=openapi.TYPE_STRING, description='New Work Order ID')
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+            401: openapi.Response(description='Unauthorized'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        data = request.data
+        user = request.user
+        icompanyid = user.icompanyid
+        id = data.get('wo_master_data').get('SeriesID')
+
+        
+        # below only the serializer data id given because the id is req .
+        series_serializer = SeriesMasterSaveSerializer(data={'id' : data.get('wo_master_data').get('SeriesID')}, context={'request': request, 'icompanyid': icompanyid,'id': id})
+
+        if series_serializer.is_valid():
+            try:
+                with transaction.atomic():
+                    # Needed data for itemwomaster
+                    # new_woid = series_serializer.save()
+                    instance = series_serializer.save()
+
+                    new_woid = series_serializer.context.get('new_woid')
+                    prefix = series_serializer.context.get('prefix')
+                    current_docno = series_serializer.context.get('current_docno')
+                    sufix = series_serializer.context.get('sufix')
+
+                    docnotion = 24 # this will be set after march , generate accordingly
+
+                    print(new_woid)
+                    #End Item wo master
+
+                    # Add the new_woid to the wo_master_data and wo_detail_data
+                    data['wo_master_data']['icompanyid'] = icompanyid
+                    data['wo_master_data']['woid'] = new_woid
+                    data['wo_master_data']['sprefix'] = prefix
+                    data['wo_master_data']['swono'] = current_docno
+                    data['wo_master_data']['ssufix'] = sufix
+                    data['wo_master_data']['docnotion'] = docnotion
+                    data['wo_master_data']['isactive'] = 0
+
+                    # data['wo_detail_data']['woid'] = docnotion
+                    for index, detail in enumerate(data['wo_detail_data']):
+                    # for detail in data['wo_detail_data']:
+                        detail['woid'] = new_woid
+                        detail['icompanyid'] = icompanyid
+                        detail['jobno'] =  str(new_woid) + "-"+ str(index + 1)
+                        detail['docnotion'] = docnotion
+                        detail['isactive'] = 0
+                        for del_address in detail['del_address']:
+                            del_address['woid'] = new_woid
+                            del_address['jobno'] = index + 1
+                            del_address['docnotion'] = docnotion
+                            del_address['icompanyid'] = icompanyid
+
+                    # Save the item_womaster data
+                    wo_master_data = data['wo_master_data']
+                    print(wo_master_data)
+                    
+                    wo_master_serializer = WOMasterSerializer(data=wo_master_data)
+                    if wo_master_serializer.is_valid():
+                        wo_master_serializer.save()
+                    else:
+                        raise serializers.ValidationError(wo_master_serializer.errors)
+
+                    # Save the item_wodetail data
+                    for detail in data['wo_detail_data']:
+                        wo_detail_serializer = WODetailSerializer(data=detail)
+                        if wo_detail_serializer.is_valid():
+                            wo_detail_serializer.save()
+                        else:
+                            raise serializers.ValidationError(wo_detail_serializer.errors)
+
+                    #     # Save the companydelqtydate data
+                    #     for del_address in detail['del_address']:
+                    #         del_qty_date_serializer = CompanyDelQtyDateSerializer(data=del_address)
+                    #         if del_qty_date_serializer.is_valid():
+                    #             del_qty_date_serializer.save()
+                    #         else:
+                    #             raise serializers.ValidationError(del_qty_date_serializer.errors)
+
+                return Response(
+                    {'message': 'Data saved successfully', 'new_woid': new_woid},
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(series_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # End Order Management Section 

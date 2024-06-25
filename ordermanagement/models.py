@@ -240,3 +240,14 @@ class ItemSpec(models.Model):
         managed = False
         db_table = 'item_spec'
         unique_together = (('specid', 'itemid', 'description'),)
+
+class Mypref(models.Model):
+    id = models.AutoField(db_column='ID', primary_key=True)  
+    heading = models.CharField(db_column='Heading', max_length=100)  
+    mainheading = models.CharField(db_column='MainHeading', max_length=100)  
+    result = models.CharField(db_column='Result', max_length=100)  
+    defultresult = models.CharField(db_column='DefultResult', max_length=100)  
+
+    class Meta:
+        managed = False
+        db_table = 'mypref'
