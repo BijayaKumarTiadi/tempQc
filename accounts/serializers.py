@@ -2,6 +2,8 @@
 from rest_framework import serializers
 import random
 import hashlib
+from rest_framework.response import Response
+from rest_framework import status
 #Private imports
 
 
@@ -30,6 +32,7 @@ class LoginSerializer(serializers.Serializer):
     captcha = serializers.CharField(write_only=True)
     captcha_hash = serializers.CharField(write_only=True)
 
+    '''
     def validate(self, data):
         """
         Custom validation method to verify the captcha input against its hashed value.
@@ -47,9 +50,11 @@ class LoginSerializer(serializers.Serializer):
         captcha_hash = data.get('captcha_hash')
 
         if not self.verify_captcha(captcha, captcha_hash):
+            # return Response({'message': 'Invalid CAPTCHA', 'data': {}}, status=status.HTTP_400_BAD_REQUEST)
             raise serializers.ValidationError("Invalid CAPTCHA")
 
         return data
+    '''
 
     def verify_captcha(self, captcha, captcha_hash): #-> bool
         """

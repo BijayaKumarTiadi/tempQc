@@ -101,6 +101,7 @@ class SeriesMasterSaveSerializer(serializers.ModelSerializer):
         
 
 
+#This is auto require 
 class WOMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItemWomaster
@@ -109,17 +110,22 @@ class WOMasterSerializer(serializers.ModelSerializer):
             'postatus', 'wono', 'podate', 'execid', 'orderedby', 'paymentday', 'paymenttype',
             'filelocation', 'remarks', 'proofingchk','poreceivedate','docnotion','isactive'
         ]
+        extra_kwargs = {field: {'required': False} for field in fields}
 
 class CompanyDelQtyDateSerializer(serializers.ModelSerializer):
+    qtytodeliver = serializers.IntegerField(required=False, default=0)
     class Meta:
         model = Companydelqtydate
         fields = [
         'woid', 'recordid_old', 'jobno', 'icompanyid', 'clientid', 'delrecordid', 'billingrecordid',
         'schdeliverydate', 'lastdeliverydate', 'qtytodeliver','qtydelivered', 'specid', 'itemid', 'docnotion']
+        extra_kwargs = {field: {'required': False} for field in fields} 
 
 
 class WODetailSerializer(serializers.ModelSerializer):
     del_address = CompanyDelQtyDateSerializer(many=True)
+    artworkno = serializers.CharField(required=False, allow_blank=True)
+    freight = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     class Meta:
         model = ItemWodetail
         fields = [
@@ -127,6 +133,7 @@ class WODetailSerializer(serializers.ModelSerializer):
         'qtyminus', 'rate', 'actualrate', 'unitid', 'rateinthousand', 'rateunit', 'artworkno',
         'amount', 'percentvar', 'freight', 'specification', 'ref', 'color', 'cp', 'docnotion',
         'remarks', 'transfer_wo', 'hold', 'dontshowforjc', 'artworkreceive', 'closedate', 'templateid','isactive', 'del_address']
+        extra_kwargs = {field: {'required': False} for field in fields}
 
     def create(self, validated_data):
         del_address_data = validated_data.pop('del_address', [])
@@ -138,3 +145,113 @@ class WODetailSerializer(serializers.ModelSerializer):
         
         return item_wodetail
 
+
+"""
+#With some extra feature
+class WOMasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemWomaster
+        fields = [
+            'woid', 'sprefix', 'swono', 'ssufix', 'icompanyid', 'wodate', 'clientid',
+            'postatus', 'wono', 'podate', 'execid', 'orderedby', 'paymentday', 'paymenttype',
+            'filelocation', 'remarks', 'proofingchk', 'poreceivedate', 'docnotion', 'isactive'
+        ]
+        extra_kwargs = {
+            'sprefix': {'required': False, 'allow_null': True},
+            'swono': {'required': False, 'allow_null': True},
+            'ssufix': {'required': False, 'allow_null': True},
+            'wodate': {'required': False, 'allow_null': True},
+            'clientid': {'required': False, 'allow_null': True},
+            'postatus': {'required': False, 'allow_null': True},
+            'wono': {'required': False, 'allow_null': True},
+            'podate': {'required': False, 'allow_null': True},
+            'execid': {'required': False, 'allow_null': True},
+            'orderedby': {'required': False, 'allow_null': True},
+            'paymentday': {'required': False, 'allow_null': True},
+            'paymenttype': {'required': False, 'allow_null': True},
+            'filelocation': {'required': False, 'allow_null': True},
+            'remarks': {'required': False, 'allow_null': True},
+            'proofingchk': {'required': False, 'allow_null': True},
+            'poreceivedate': {'required': False, 'allow_null': True},
+            'docnotion': {'required': False, 'allow_null': True},
+            'isactive': {'required': False, 'allow_null': True},
+        }
+
+class CompanyDelQtyDateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Companydelqtydate
+        fields = [
+            'woid', 'recordid_old', 'jobno', 'icompanyid', 'clientid', 'delrecordid', 'billingrecordid',
+            'schdeliverydate', 'lastdeliverydate', 'qtytodeliver', 'qtydelivered', 'specid', 'itemid', 'docnotion'
+        ]
+        extra_kwargs = {
+            'recordid_old': {'required': False, 'allow_null': True},
+            'jobno': {'required': False, 'allow_null': True},
+            'icompanyid': {'required': False, 'allow_null': True},
+            'clientid': {'required': False, 'allow_null': True},
+            'delrecordid': {'required': False, 'allow_null': True},
+            'billingrecordid': {'required': False, 'allow_null': True},
+            'schdeliverydate': {'required': False, 'allow_null': True},
+            'lastdeliverydate': {'required': False, 'allow_null': True},
+            'qtytodeliver': {'required': False, 'allow_null': True},
+            'qtydelivered': {'required': False, 'allow_null': True},
+            'specid': {'required': False, 'allow_null': True},
+            'itemid': {'required': False, 'allow_null': True},
+            'docnotion': {'required': False, 'allow_null': True},
+        }
+
+class WODetailSerializer(serializers.ModelSerializer):
+    del_address = CompanyDelQtyDateSerializer(many=True, required=False)
+
+    class Meta:
+        model = ItemWodetail
+        fields = [
+            'woid', 'jobno', 'icompanyid', 'itemdesc', 'itemcode', 'codeno', 'itemid', 'quantity', 'qtyplus',
+            'qtyminus', 'rate', 'actualrate', 'unitid', 'rateinthousand', 'rateunit', 'artworkno',
+            'amount', 'percentvar', 'freight', 'specification', 'ref', 'color', 'cp', 'docnotion',
+            'remarks', 'transfer_wo', 'hold', 'dontshowforjc', 'artworkreceive', 'closedate', 'templateid', 'isactive', 'del_address'
+        ]
+        extra_kwargs = {
+            'jobno': {'required': False, 'allow_null': True},
+            'icompanyid': {'required': False, 'allow_null': True},
+            'itemdesc': {'required': False, 'allow_null': True},
+            'itemcode': {'required': False, 'allow_null': True},
+            'codeno': {'required': False, 'allow_null': True},
+            'itemid': {'required': False, 'allow_null': True},
+            'quantity': {'required': False, 'allow_null': True},
+            'qtyplus': {'required': False, 'allow_null': True},
+            'qtyminus': {'required': False, 'allow_null': True},
+            'rate': {'required': False, 'allow_null': True},
+            'actualrate': {'required': False, 'allow_null': True},
+            'unitid': {'required': False, 'allow_null': True},
+            'rateinthousand': {'required': False, 'allow_null': True},
+            'rateunit': {'required': False, 'allow_null': True},
+            'artworkno': {'required': False, 'allow_null': True},
+            'amount': {'required': False, 'allow_null': True},
+            'percentvar': {'required': False, 'allow_null': True},
+            'freight': {'required': False, 'allow_null': True},
+            'specification': {'required': False, 'allow_null': True},
+            'ref': {'required': False, 'allow_null': True},
+            'color': {'required': False, 'allow_null': True},
+            'cp': {'required': False, 'allow_null': True},
+            'docnotion': {'required': False, 'allow_null': True},
+            'remarks': {'required': False, 'allow_null': True},
+            'transfer_wo': {'required': False, 'allow_null': True},
+            'hold': {'required': False, 'allow_null': True},
+            'dontshowforjc': {'required': False, 'allow_null': True},
+            'artworkreceive': {'required': False, 'allow_null': True},
+            'closedate': {'required': False, 'allow_null': True},
+            'templateid': {'required': False, 'allow_null': True},
+            'isactive': {'required': False, 'allow_null': True},
+        }
+
+    def create(self, validated_data):
+        del_address_data = validated_data.pop('del_address', [])
+        item_wodetail = ItemWodetail.objects.create(**validated_data)
+        
+        for del_address in del_address_data:
+            del_address['woid'] = item_wodetail.woid
+            Companydelqtydate.objects.create(**del_address)
+        
+        return item_wodetail
+"""
