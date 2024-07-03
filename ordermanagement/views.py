@@ -21,7 +21,7 @@ from accounts.helpers import GetUserData
 from .models import ItemWomaster
 from .utils import DataManager
 from .helper import pdf_processing, gemini_1
-from mastersapp.models import Seriesmaster
+from mastersapp.models import ItemWodetail, Seriesmaster
 from mastersapp.models import Companymaster
 from mastersapp.models import Employeemaster
 from mastersapp.models import CompanymasterEx1
@@ -39,6 +39,7 @@ from .serializers import ItemSpecSerializer
 from .serializers import MyprefSerializer
 from .serializers import SeriesMasterSaveSerializer
 from .serializers import SeriesMasterSaveSerializer, WOMasterSerializer, WODetailSerializer, CompanyDelQtyDateSerializer
+from .serializers import ItemWodetailSerializer
 
 
 #--Installed Library imports
@@ -1430,60 +1431,123 @@ class WOCreateView(APIView):
 
 
 class WoListAPIView(APIView):
+    """
+    API endpoint to retrieve a list of Work Orders based on various filters.
+    """
 
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve List of Work Orders",
+        operation_description="Retrieve a list of Work Orders based on filters.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'txt_woid': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Work Order ID (partial match)'),
+                'txt_miscodeNo': openapi.Schema(type=openapi.TYPE_STRING, description='Search by MIS Code Number (partial match)'),
+                'txt_productName': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Product Name (partial match)'),
+                'txt_ClientCode': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Client Code (partial match)'),
+                'drp_ClientId': openapi.Schema(type=openapi.TYPE_INTEGER, description='Filter by Client ID'),
+                'docnotion': openapi.Schema(type=openapi.TYPE_INTEGER, description='Filter by Doc Notion', enum=[1, 2, 3]),  # Adjust enum values as per your requirement
+                'limit': openapi.Schema(type=openapi.TYPE_INTEGER, description='Limit number of results'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                description='Data retrieved successfully',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'data': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'wo_list': openapi.Schema(
+                                    type=openapi.TYPE_ARRAY,
+                                    items=openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'WOID': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'WODate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE),
+                                            'WONo': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'CompanyName': openapi.Schema(type=openapi.TYPE_STRING),
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+            401: openapi.Response(description='Unauthorized'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
     def post(self, request, format=None):
-
-        permission_classes = [IsAuthenticated]
-
+        """
+        Retrieve a list of Work Orders based on the provided filters.
+        """
         data = request.data
         filters = ""
 
+        # Get user data using your utility method
         user = GetUserData.get_user(request)
         icompanyid = user.icompanyid
 
+        # Apply filters based on request data
         woid = data.get('txt_woid', None)
         if woid:
-            filters += f" and a.woid like '%{woid}%'"
+            filters += f" AND a.woid LIKE '%{woid}%'"
 
         miscodeNo = data.get('txt_miscodeNo', None)
         if miscodeNo:
-            filters += f" and d.AccCode like '%{miscodeNo}%'"
+            filters += f" AND d.AccCode LIKE '%{miscodeNo}%'"
         
         productName = data.get('txt_productName', None)
         if productName:
-            filters += f" and d.Description like '%{productName}%'"
+            filters += f" AND d.Description LIKE '%{productName}%'"
         
         clientCode = data.get('txt_ClientCode', None)
         if clientCode:
-            filters += f" and d.IPrefix like '%{clientCode}%'"
+            filters += f" AND d.IPrefix LIKE '%{clientCode}%'"
 
         clientId = data.get('drp_ClientId', None)
         if clientId:
-            filters += f" and a.ClientID like '%{clientId}%'"
+            filters += f" AND a.ClientID = '{clientId}'"
 
         docnotion = data.get('docnotion', None)
         if docnotion is None:
             return Response(
-                {"error": True, "message": "docnotion required"}, 
+                {"error": True, "message": "docnotion parameter is required"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        filters += f" and a.docnotion={int(docnotion)}"
-        # filters += f" and a.ICompanyID='00001'"
-
-        filters += f" and a.ICompanyID='{icompanyid}'"
+        filters += f" AND a.docnotion = {int(docnotion)}"
+        filters += f" AND a.ICompanyID = '{icompanyid}'"
 
         limit = data.get('limit', None)
-        limitQ = f" limit {limit}" if limit else ""
+        limitQ = f" LIMIT {limit}" if limit else ""
         
         query = f"""
-            SELECT a.WOID, MAX(date_format(a.WODate, '%d/%m/%Y')) as WODate, a.WONo, Get_CompanyName(a.ClientId) as CompanyName
-            FROM item_womaster as a
-            JOIN item_wodetail as b ON a.woid = b.woid
-            JOIN item_fpmasterext as d ON b.ItemID = d.ProductID
+            SELECT a.WOID, MAX(date_format(a.WODate, '%d/%m/%Y')) AS WODate, a.WONo, Get_CompanyName(a.ClientId) AS CompanyName
+            FROM item_womaster AS a
+            JOIN item_wodetail AS b ON a.woid = b.woid
+            JOIN item_fpmasterext AS d ON b.ItemID = d.ProductID
             WHERE 1=1 {filters}
             GROUP BY b.WOId, a.WONo
-            ORDER BY a.WODate desc {limitQ};
+            ORDER BY a.WODate DESC {limitQ};
         """
 
         try:
@@ -1491,20 +1555,77 @@ class WoListAPIView(APIView):
                 cursor.execute(query)
                 columns = [col[0] for col in cursor.description]
                 result = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-            return Response(
-                {"error": False, "message": "Success", "data": result},
-                status=status.HTTP_200_OK
-            )
+            
+            response_data = {
+                "message": "Success",
+                "data": {
+                    "wo_list": result,
+                }
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except DatabaseError as e:
             return Response(
-                {"error": True, "message": "Internal Serval Error, Contact Administration","errorMessage":str(e)},
+                {"error": True, "message": "Internal Server Error, Contact Administration", "errorMessage": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        except Exception as e:
+            return Response({'error': True, 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class WoJobListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="Retrieve Work Order details by WOID",
+        operation_description="Retrieve Work Order details by Work Order ID.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order ID'),
+            },
+            required=['woid']
+        ),
+        responses={
+            200: openapi.Response(
+                description='Success',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'error': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Error flag'),
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Response message'),
+                        'data': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order ID'),
+                                    'jobno': openapi.Schema(type=openapi.TYPE_INTEGER, description='Job Number'),
+                                    'description': openapi.Schema(type=openapi.TYPE_STRING, description='Item Description'),
+                                    'acccode': openapi.Schema(type=openapi.TYPE_STRING, description='Account Code'),
+                                    'iprefix': openapi.Schema(type=openapi.TYPE_STRING, description='Item Prefix'),
+                                }
+                            )
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+            401: openapi.Response(description='Unauthorized'),
+            404: openapi.Response(description='Not found'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
     def post(self, request, format=None):
         woid = request.data.get('woid', None)
         
@@ -1527,15 +1648,19 @@ class WoJobListAPIView(APIView):
                 columns = [col[0] for col in cursor.description]
                 result = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-            return Response(
-                {"error": False, "message": "Success", "data": result},
-                status=status.HTTP_200_OK
-            )
+            response_data = {
+                    "message": "Success",
+                    "data": {
+                        "wo_data": result,
+                    }}
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except DatabaseError as e:
             return Response(
-                {"error": True, "message": "Internal Serval Error, Contact Administration", "errorMessage" : str(e)},
+                {"message": "Internal Serval Error, Contact Administration", "errorMessage" : str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # End Order Management Section 

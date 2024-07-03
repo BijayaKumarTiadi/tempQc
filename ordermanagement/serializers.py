@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.db import transaction
 # from .models import UploadedFile
-from mastersapp.models import Employeemaster
+from mastersapp.models import Employeemaster, ItemFpmasterext
 from mastersapp.models import Companymaster
 from mastersapp.models import Seriesmaster
 from mastersapp.models import CompanymasterEx1
@@ -255,3 +255,15 @@ class WODetailSerializer(serializers.ModelSerializer):
         
         return item_wodetail
 """
+
+class ItemFpmasterextSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemFpmasterext
+        fields = ['description', 'acccode', 'iprefix']
+
+class ItemWodetailSerializer(serializers.ModelSerializer):
+    itemid = ItemFpmasterextSerializer()
+    
+    class Meta:
+        model = ItemWodetail
+        fields = ['woid', 'jobno', 'itemid']
