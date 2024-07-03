@@ -10,7 +10,7 @@ from rest_framework.parsers import MultiPartParser
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
-from django.db import connection, connections
+from django.db import connection, connections, DatabaseError
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from rest_framework import serializers
@@ -1428,5 +1428,114 @@ class WOCreateView(APIView):
         else:
             return Response(series_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class WoListAPIView(APIView):
+
+    def post(self, request, format=None):
+
+        permission_classes = [IsAuthenticated]
+
+        data = request.data
+        filters = ""
+
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+
+        woid = data.get('txt_woid', None)
+        if woid:
+            filters += f" and a.woid like '%{woid}%'"
+
+        miscodeNo = data.get('txt_miscodeNo', None)
+        if miscodeNo:
+            filters += f" and d.AccCode like '%{miscodeNo}%'"
+        
+        productName = data.get('txt_productName', None)
+        if productName:
+            filters += f" and d.Description like '%{productName}%'"
+        
+        clientCode = data.get('txt_ClientCode', None)
+        if clientCode:
+            filters += f" and d.IPrefix like '%{clientCode}%'"
+
+        clientId = data.get('drp_ClientId', None)
+        if clientId:
+            filters += f" and a.ClientID like '%{clientId}%'"
+
+        docnotion = data.get('docnotion', None)
+        if docnotion is None:
+            return Response(
+                {"error": True, "message": "docnotion required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        filters += f" and a.docnotion={int(docnotion)}"
+        # filters += f" and a.ICompanyID='00001'"
+
+        filters += f" and a.ICompanyID='{icompanyid}'"
+
+        limit = data.get('limit', None)
+        limitQ = f" limit {limit}" if limit else ""
+        
+        query = f"""
+            SELECT a.WOID, MAX(date_format(a.WODate, '%d/%m/%Y')) as WODate, a.WONo, Get_CompanyName(a.ClientId) as CompanyName
+            FROM item_womaster as a
+            JOIN item_wodetail as b ON a.woid = b.woid
+            JOIN item_fpmasterext as d ON b.ItemID = d.ProductID
+            WHERE 1=1 {filters}
+            GROUP BY b.WOId, a.WONo
+            ORDER BY a.WODate desc {limitQ};
+        """
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                columns = [col[0] for col in cursor.description]
+                result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            return Response(
+                {"error": False, "message": "Success", "data": result},
+                status=status.HTTP_200_OK
+            )
+
+        except DatabaseError as e:
+            return Response(
+                {"error": True, "message": "Internal Serval Error, Contact Administration","errorMessage":str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+class WoJobListAPIView(APIView):
+
+    def post(self, request, format=None):
+        woid = request.data.get('woid', None)
+        
+        if not woid:
+            return Response(
+                {"error": True, "message": "woid parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        query = """
+            SELECT a.WOId, a.JobNo, b.Description, b.AccCode, b.IPrefix
+            FROM item_wodetail as a
+            JOIN item_fpmasterext as b ON a.ItemID = b.ProductID
+            WHERE a.woid = %s;
+        """
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(query, [woid])
+                columns = [col[0] for col in cursor.description]
+                result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            return Response(
+                {"error": False, "message": "Success", "data": result},
+                status=status.HTTP_200_OK
+            )
+
+        except DatabaseError as e:
+            return Response(
+                {"error": True, "message": "Internal Serval Error, Contact Administration", "errorMessage" : str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # End Order Management Section 
