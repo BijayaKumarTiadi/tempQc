@@ -262,8 +262,16 @@ class ItemFpmasterextSerializer(serializers.ModelSerializer):
         fields = ['description', 'acccode', 'iprefix']
 
 class ItemWodetailSerializer(serializers.ModelSerializer):
-    itemid = ItemFpmasterextSerializer()
-    
     class Meta:
         model = ItemWodetail
-        fields = ['woid', 'jobno', 'itemid']
+        fields = '__all__'
+
+class ItemWomasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemWomaster
+        fields = '__all__'
+
+class CompanydelqtydateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Companydelqtydate
+        fields = '__all__'

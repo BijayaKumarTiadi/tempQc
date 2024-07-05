@@ -14,6 +14,8 @@ from .views import SaveWithSeriesView
 from .views import WOCreateView 
 from .views import WoListAPIView
 from .views import WoJobListAPIView
+from .views import WoListView
+from .views import CompanyListView
 
 urlpatterns = [
 
@@ -33,6 +35,8 @@ urlpatterns = [
     path('/Workorder/save/', WOCreateView.as_view(), name='save'),
     path('/Workorder/soSearch/', WoListAPIView.as_view(), name='so-search'),
     path('/Workorder/soJoblist/', WoJobListAPIView.as_view(), name='so-job-list'),
+    path('/Workorder/woList/', WoListView.as_view(), name='wo-list'),
+    path('/Workorder/companyList/', CompanyListView.as_view(), name='Company-list'),
 
     # path('/Workorder/status/', Workorder.as_view(), name='Workorder'), # approve  reject normal , table item_WODetail col - approved
 

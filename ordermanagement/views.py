@@ -18,13 +18,14 @@ from rest_framework import serializers
 from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
 
-from .models import ItemWomaster
 from .utils import DataManager
 from .helper import pdf_processing, gemini_1
+from mastersapp.models import ItemWomaster
 from mastersapp.models import ItemWodetail, Seriesmaster
 from mastersapp.models import Companymaster
 from mastersapp.models import Employeemaster
 from mastersapp.models import CompanymasterEx1
+from mastersapp.models import Companydelqtydate
 from .models import Paymentterms
 from .models import ItemSpec
 from .models import Mypref
@@ -40,6 +41,8 @@ from .serializers import MyprefSerializer
 from .serializers import SeriesMasterSaveSerializer
 from .serializers import SeriesMasterSaveSerializer, WOMasterSerializer, WODetailSerializer, CompanyDelQtyDateSerializer
 from .serializers import ItemWodetailSerializer
+from .serializers import ItemWomasterSerializer
+from .serializers import CompanydelqtydateSerializer
 
 
 #--Installed Library imports
@@ -1457,7 +1460,7 @@ class WoListAPIView(APIView):
                 'txt_miscodeNo': openapi.Schema(type=openapi.TYPE_STRING, description='Search by MIS Code Number (partial match)'),
                 'txt_productName': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Product Name (partial match)'),
                 'txt_ClientCode': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Client Code (partial match)'),
-                'drp_ClientId': openapi.Schema(type=openapi.TYPE_INTEGER, description='Filter by Client ID'),
+                'drp_ClientId': openapi.Schema(type=openapi.TYPE_STRING, description='Filter by Client ID'),
                 'docnotion': openapi.Schema(type=openapi.TYPE_INTEGER, description='Filter by Doc Notion', enum=[1, 2, 3]),  # Adjust enum values as per your requirement
                 'limit': openapi.Schema(type=openapi.TYPE_INTEGER, description='Limit number of results'),
             }
@@ -1566,11 +1569,11 @@ class WoListAPIView(APIView):
 
         except DatabaseError as e:
             return Response(
-                {"error": True, "message": "Internal Server Error, Contact Administration", "errorMessage": str(e)},
+                {"message": "Internal Server Error, Contact Administration", "errorMessage": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         except Exception as e:
-            return Response({'error': True, 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class WoJobListAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1662,5 +1665,149 @@ class WoJobListAPIView(APIView):
             )
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class WoListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve Work Order Data",
+        operation_description="Fetch data from ItemWodetail, ItemWomaster, and Companydelqtydate tables using woid and icompanyid.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order ID'),
+                'icompanyid': openapi.Schema(type=openapi.TYPE_STRING, description='ICompany ID'),
+            },
+            required=['woid', 'icompanyid']
+        ),
+        responses={
+            200: openapi.Response(
+                description='Data fetched successfully',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'data': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'wo_data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                            }
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+            401: openapi.Response(description='Unauthorized'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request, format=None):
+        woid = request.data.get('woid')
+        icompanyid = request.data.get('icompanyid')
+
+        if not woid or not icompanyid:
+            return Response(
+                {"error": True, "message": "woid and icompanyid parameters are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            item_wodetail_qs = ItemWodetail.objects.filter(woid=woid, icompanyid=icompanyid)
+            item_womaster_qs = ItemWomaster.objects.filter(woid=woid, icompanyid=icompanyid)
+            companydelqtydate_qs = Companydelqtydate.objects.filter(woid=woid, icompanyid=icompanyid)
+
+            item_wodetail_serializer = ItemWodetailSerializer(item_wodetail_qs, many=True)
+            item_womaster_serializer = ItemWomasterSerializer(item_womaster_qs, many=True)
+            companydelqtydate_serializer = CompanydelqtydateSerializer(companydelqtydate_qs, many=True)
+
+            result = {
+                "item_wodetail": item_wodetail_serializer.data,
+                "item_womaster": item_womaster_serializer.data,
+                "companydelqtydate": companydelqtydate_serializer.data,
+            }
+
+            response_data = {
+                "message": "Success",
+                "data": {
+                    "wo_data": result,
+                }
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"message": "Internal Server Error", "errorMessage": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class CompanyListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve Company Master Data",
+        operation_description="Fetch a list of active companies ordered by their name for the authenticated user's company.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description='Data fetched successfully',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'data': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'companies': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_OBJECT))
+                            }
+                        )
+                    }
+                )
+            ),
+            401: openapi.Response(description='Unauthorized'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    def get(self, request, format=None):
+        try:
+            user = GetUserData.get_user(request)
+            icompanyid = user.icompanyid
+
+            companies = Companymaster.objects.filter(companyid=icompanyid, isactive=True).order_by('companyname')
+            companies_results = CompanySerializer(companies, many=True).data
+
+            response_data = {
+                "message": "Success",
+                "data": {
+                    "companies": companies_results,
+                }
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"message": "Internal Server Error", "errorMessage": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # End Order Management Section 
