@@ -30,6 +30,14 @@ class CompanySerializer(serializers.ModelSerializer):
         model = Companymaster
         fields = ['companyid', 'companyname']
 
+class ExtendedCompanySerializer(CompanySerializer):
+    isactive = serializers.IntegerField(read_only=True)
+
+    class Meta(CompanySerializer.Meta):
+        fields = CompanySerializer.Meta.fields + ['isactive']
+
+
+
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employeemaster
@@ -262,9 +270,15 @@ class ItemFpmasterextSerializer(serializers.ModelSerializer):
         fields = ['description', 'acccode', 'iprefix']
 
 class ItemWodetailSerializer(serializers.ModelSerializer):
+    del_address = serializers.SerializerMethodField()
+
     class Meta:
         model = ItemWodetail
         fields = '__all__'
+
+    def get_del_address(self, obj):
+        del_address = Companydelqtydate.objects.filter(woid=obj.woid, icompanyid=obj.icompanyid)
+        return CompanydelqtydateSerializer(del_address, many=True).data
 
 class ItemWomasterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -275,3 +289,46 @@ class CompanydelqtydateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Companydelqtydate
         fields = '__all__'
+
+'''
+# YOu can use the below got get the fields as it is in the databse table column names .
+# Use this unchanged .
+# class CompanydelqtydateSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Companydelqtydate
+#         fields = '__all__'
+
+#     def to_representation(self, instance):
+#         """
+#         Ths is for the addn of the column names as it is in the data table . Remove it if not required.
+#         """
+#         representation = super().to_representation(instance)
+#         custom_representation = {self.Meta.model._meta.get_field(field).db_column: value for field, value in representation.items()}
+#         return custom_representation
+
+# class ItemWodetailSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = ItemWodetail
+#         fields = '__all__'
+
+#     def to_representation(self, instance):
+#         representation = super().to_representation(instance)
+#         custom_representation = {self.Meta.model._meta.get_field(field).db_column: value for field, value in representation.items()}
+        
+#         # Adding del_address . bcs no field in the model for the del_adrs
+#         del_address_qs = Companydelqtydate.objects.filter(woid=instance.woid, icompanyid=instance.icompanyid)
+#         custom_representation['del_address'] = CompanydelqtydateSerializer(del_address_qs, many=True).data
+        
+#         return custom_representation
+
+# class ItemWomasterSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = ItemWomaster
+#         fields = '__all__'
+
+#     def to_representation(self, instance):
+#         representation = super().to_representation(instance)
+#         custom_representation = {self.Meta.model._meta.get_field(field).db_column: value for field, value in representation.items()}
+#         return custom_representation
+
+'''

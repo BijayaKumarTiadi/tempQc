@@ -42,7 +42,7 @@ from .serializers import SeriesMasterSaveSerializer
 from .serializers import SeriesMasterSaveSerializer, WOMasterSerializer, WODetailSerializer, CompanyDelQtyDateSerializer
 from .serializers import ItemWodetailSerializer
 from .serializers import ItemWomasterSerializer
-from .serializers import CompanydelqtydateSerializer
+from .serializers import ExtendedCompanySerializer
 
 
 #--Installed Library imports
@@ -1686,9 +1686,8 @@ class WoListView(APIView):
             type=openapi.TYPE_OBJECT,
             properties={
                 'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order ID'),
-                'icompanyid': openapi.Schema(type=openapi.TYPE_STRING, description='ICompany ID'),
             },
-            required=['woid', 'icompanyid']
+            required=['woid']
         ),
         responses={
             200: openapi.Response(
@@ -1714,7 +1713,8 @@ class WoListView(APIView):
     )
     def post(self, request, format=None):
         woid = request.data.get('woid')
-        icompanyid = request.data.get('icompanyid')
+        user = request.user
+        icompanyid = user.icompanyid
 
         if not woid or not icompanyid:
             return Response(
@@ -1725,16 +1725,13 @@ class WoListView(APIView):
         try:
             item_wodetail_qs = ItemWodetail.objects.filter(woid=woid, icompanyid=icompanyid)
             item_womaster_qs = ItemWomaster.objects.filter(woid=woid, icompanyid=icompanyid)
-            companydelqtydate_qs = Companydelqtydate.objects.filter(woid=woid, icompanyid=icompanyid)
 
             item_wodetail_serializer = ItemWodetailSerializer(item_wodetail_qs, many=True)
             item_womaster_serializer = ItemWomasterSerializer(item_womaster_qs, many=True)
-            companydelqtydate_serializer = CompanydelqtydateSerializer(companydelqtydate_qs, many=True)
 
             result = {
-                "item_wodetail": item_wodetail_serializer.data,
-                "item_womaster": item_womaster_serializer.data,
-                "companydelqtydate": companydelqtydate_serializer.data,
+                "wo_master_data": item_womaster_serializer.data,
+                "wo_detail_data": item_wodetail_serializer.data,
             }
 
             response_data = {
@@ -1793,8 +1790,9 @@ class CompanyListView(APIView):
             user = GetUserData.get_user(request)
             icompanyid = user.icompanyid
 
-            companies = Companymaster.objects.filter(companyid=icompanyid, isactive=True).order_by('companyname')
-            companies_results = CompanySerializer(companies, many=True).data
+            # companies = Companymaster.objects.filter(companyid=icompanyid, isactive=True).order_by('companyname')
+            companies = Companymaster.objects.filter(isactive=True).order_by('companyname')
+            companies_results = ExtendedCompanySerializer(companies, many=True).data
 
             response_data = {
                 "message": "Success",
