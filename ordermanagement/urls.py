@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 #AIPO Views imports
 from .views import ProcessPDFView, SaveResponseView
 from .views import GetCompanyFormatsView
@@ -33,7 +33,7 @@ urlpatterns = [
     path('/Workorder/item-spec/', ItemSpecView.as_view(), name='item-spec'),
     path('/Workorder/ratelist/', RateListView.as_view(), name='RateListView'),
     path('/Workorder/save/', WOCreateView.as_view(), name='save'),
-    path('/Workorder/soSearch/', WoListAPIView.as_view(), name='so-search'),
+    re_path(r'^workorders/save/(?P<woid>.+)/$', WOCreateView.as_view(), name='update-workorder'),    path('/Workorder/soSearch/', WoListAPIView.as_view(), name='so-search'),
     path('/Workorder/soJoblist/', WoJobListAPIView.as_view(), name='so-job-list'),
     path('/Workorder/woList/', WoListView.as_view(), name='wo-list'),
     path('/Workorder/companyList/', CompanyListView.as_view(), name='Company-list'),

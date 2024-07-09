@@ -1,5 +1,6 @@
 ## Work order Imports
 #--Default imports
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -1432,7 +1433,158 @@ class WOCreateView(APIView):
         else:
             return Response(series_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(
+        operation_summary="Update Work Order",
+        operation_description="Update Work Order and related records.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'wo_master_data': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'SeriesID': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
+                        'wodate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Work Order Date', example='2022-03-10 00:00:00'),
+                        'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
+                        'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status', example='Open'),
+                        'wono': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order Number', example='WO123'),
+                        'podate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='PO Date', example='2024-06-25 22:16:44'),
+                        'poreceivedate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='PO Receive Date', example='2022-03-10 00:00:00'),
+                        'execid': openapi.Schema(type=openapi.TYPE_STRING, description='Exec ID', example='EXEC123'),
+                        'orderedby': openapi.Schema(type=openapi.TYPE_STRING, description='Ordered By', example='John Doe'),
+                        'paymentday': openapi.Schema(type=openapi.TYPE_INTEGER, description='Payment Day', example=30),
+                        'paymenttype': openapi.Schema(type=openapi.TYPE_STRING, description='Payment Type', example='Credit'),
+                        'filelocation': openapi.Schema(type=openapi.TYPE_STRING, description='File Location', example='/path/to/file'),
+                        'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', example='Some remarks'),
+                        'proofingchk': openapi.Schema(type=openapi.TYPE_INTEGER, description='Proofing Check', example=1),
+                    },
+                    required=['SeriesID', 'wodate', 'clientid']
+                ),
+                'wo_detail_data': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'itemdesc': openapi.Schema(type=openapi.TYPE_STRING, description='Item Description', example='Item Description'),
+                            'itemcode': openapi.Schema(type=openapi.TYPE_STRING, description='Item Code', example='ITEM123'),
+                            'codeno': openapi.Schema(type=openapi.TYPE_STRING, description='Code Number', example='CODE123'),
+                            'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', example='ITEM123'),
+                            'quantity': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity', example=100),
+                            'qtyplus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Plus', example=10),
+                            'qtyminus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Minus', example=5),
+                            'rate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate', example=10.5),
+                            'actualrate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Actual Rate', example=10.5),
+                            'unitid': openapi.Schema(type=openapi.TYPE_STRING, description='Unit ID', example='UNIT123'),
+                            'rateinthousand': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate in Thousand', example=10000),
+                            'rateunit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit', example='kg'),
+                            'artworkno': openapi.Schema(type=openapi.TYPE_STRING, description='Artwork Number', example='ART123'),
+                            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Amount', example=1050.75),
+                            'percentvar': openapi.Schema(type=openapi.TYPE_NUMBER, description='Percent Variation', example=2.5),
+                            'freight': openapi.Schema(type=openapi.TYPE_STRING, description='Freight', example='0'),
+                            'specification': openapi.Schema(type=openapi.TYPE_STRING, description='Specification', example='SPEC123'),
+                            'ref': openapi.Schema(type=openapi.TYPE_STRING, description='Reference', example='REF123'),
+                            'color': openapi.Schema(type=openapi.TYPE_STRING, description='Color', example='Red'),
+                            'cp': openapi.Schema(type=openapi.TYPE_STRING, description='CP', example='P'),
+                            'docnotion': openapi.Schema(type=openapi.TYPE_STRING, description='Doc Notion', example='DOC123'),
+                            'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', example='Some remarks'),
+                            'transfer_wo': openapi.Schema(type=openapi.TYPE_INTEGER, description='Transfer WO', example=0),
+                            'hold': openapi.Schema(type=openapi.TYPE_INTEGER, description='Hold', example=0),
+                            'dontshowforjc': openapi.Schema(type=openapi.TYPE_INTEGER, description='Don\'t Show for JC', example=0),
+                            'artworkreceive': openapi.Schema(type=openapi.TYPE_INTEGER, description='Artwork Received', example=0),
+                            'closedate': openapi.Schema(type=openapi.TYPE_STRING, description='Closed', format=openapi.FORMAT_DATE, example='2060-01-01 00:00:00'),
+                            'templateid': openapi.Schema(type=openapi.TYPE_STRING, description='Template ID', example='TEMPLATE123'),
+                            'rowno': openapi.Schema(type=openapi.TYPE_INTEGER, description='Row No', example=0),
+                            'del_address': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'recordid_old': openapi.Schema(type=openapi.TYPE_STRING, description='Old Record ID', example='OLD123'),
+                                        'JobNo': openapi.Schema(type=openapi.TYPE_STRING, description='Job Number', example='JOB123'),
+                                        'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
+                                        'delrecordid': openapi.Schema(type=openapi.TYPE_STRING, description='Delivery Record ID', example='DEL123'),
+                                        'billingrecordid': openapi.Schema(type=openapi.TYPE_STRING, description='Billing Record ID', example='BILL123'),
+                                        'schdeliverydate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Scheduled Delivery Date', example='2022-03-10 00:00:00'),
+                                        'lastdeliverydate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Last Delivery Date', example='2022-03-10 00:00:00'),
+                                        'qtytodeliver': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Delivered', example=50),
+                                        'specid': openapi.Schema(type=openapi.TYPE_STRING, description='Specification ID', example='SPEC123'),
+                                        'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', example='ITEM123'),
+                                        'qtydelivered': openapi.Schema(type=openapi.TYPE_NUMBER, description='Qty Delivered', example='0.00'),
+                                        'Rowno': openapi.Schema(type=openapi.TYPE_INTEGER, description='Row No', example='0'),
+                                    }
+                                )
+                            )
+                        }
+                    )
+                )
+            },
+            required=['wo_master_data', 'wo_detail_data']
+        ),
+        responses={
+            200: openapi.Response(
+                description='Data updated successfully',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'updated_woid': openapi.Schema(type=openapi.TYPE_STRING, description='Updated Work Order ID')
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+            401: openapi.Response(description='Unauthorized'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Order Management / Workorder']
+    )
+    
+    def put(self, request, woid):
+        data = request.data
+        user = request.user
+        icompanyid = user.icompanyid
 
+        try:
+            with transaction.atomic():
+                wo_master_data = data.get('wo_master_data')
+                wo_master_instance = get_object_or_404(ItemWomaster, woid=woid, icompanyid=icompanyid)
+                wo_master_serializer = WOMasterSerializer(wo_master_instance, data=wo_master_data, partial=True)
+                if wo_master_serializer.is_valid():
+                    wo_master_serializer.save()
+                else:
+                    raise serializers.ValidationError(wo_master_serializer.errors)
+
+                ItemWodetail.objects.filter(woid=woid).delete()
+
+                for index, detail in enumerate(data['wo_detail_data']):
+                    detail['woid'] = woid
+                    detail['icompanyid'] = icompanyid
+                    detail['jobno'] = str(woid) + "-" + str(index + 1)
+                    detail['docnotion'] = 24
+                    detail['isactive'] = 0
+                    for del_address in detail['del_address']:
+                        del_address['woid'] = woid
+                        del_address['jobno'] = index + 1
+                        del_address['docnotion'] = 24
+                        del_address['icompanyid'] = icompanyid
+
+                    wo_detail_serializer = WODetailSerializer(data=detail)
+                    if wo_detail_serializer.is_valid():
+                        wo_detail_serializer.save()
+                    else:
+                        raise serializers.ValidationError(wo_detail_serializer.errors)
+
+            return Response({'message': 'Data updated successfully', 'updated_woid': woid}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 class WoListAPIView(APIView):
     """
     API endpoint to retrieve a list of Work Orders based on various filters.
@@ -1802,6 +1954,11 @@ class CompanyListView(APIView):
             }
             return Response(response_data, status=status.HTTP_200_OK)
 
+        except Companymaster.DoesNotExist:
+            return Response(
+                {"message": "No active companies found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
             return Response(
                 {"message": "Internal Server Error", "errorMessage": str(e)},
