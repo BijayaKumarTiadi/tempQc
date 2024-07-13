@@ -216,7 +216,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '50/min',  # 5 requests per minute for anonymous users
         'user': '100/min'  # 100 requests per day for authenticated users , /day availabe
-    }
+    },
+    'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
 }
 
 
