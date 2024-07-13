@@ -1352,11 +1352,11 @@ class WOCreateView(APIView):
         data = request.data
         user = request.user
         icompanyid = user.icompanyid
-        id = data.get('wo_master_data').get('SeriesID')
+        seriesid = data.get('wo_master_data').get('SeriesID')
 
         
         # below only the serializer data id given because the id is req .
-        series_serializer = SeriesMasterSaveSerializer(data={'id' : data.get('wo_master_data').get('SeriesID')}, context={'request': request, 'icompanyid': icompanyid,'id': id})
+        series_serializer = SeriesMasterSaveSerializer(data={'id' : data.get('wo_master_data').get('SeriesID')}, context={'request': request, 'icompanyid': icompanyid,'id': seriesid})
 
         if series_serializer.is_valid():
             try:
@@ -1383,6 +1383,7 @@ class WOCreateView(APIView):
                     data['wo_master_data']['ssufix'] = sufix
                     data['wo_master_data']['docnotion'] = docnotion
                     data['wo_master_data']['isactive'] = 0
+                    data['wo_master_data']['seriesid'] = seriesid
 
                     # data['wo_detail_data']['woid'] = docnotion
                     for index, detail in enumerate(data['wo_detail_data']):

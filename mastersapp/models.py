@@ -279,6 +279,7 @@ class ItemClass(models.Model):
 class ItemWomaster(models.Model):
     awoid = models.AutoField(db_column='AWOID', primary_key=True)  
     icompanyid = models.CharField(db_column='ICompanyID', max_length=10)  
+    seriesid = models.CharField(db_column='SeriesID', max_length=10)
     woid = models.CharField(db_column='WOID', max_length=30)  
     sprefix = models.CharField(db_column='SPrefix', max_length=15)  
     swono = models.CharField(db_column='SWONo', max_length=10)  
