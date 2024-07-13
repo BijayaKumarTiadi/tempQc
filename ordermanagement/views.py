@@ -1252,7 +1252,7 @@ class WOCreateView(APIView):
                 'wo_master_data': openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'SeriesID': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
+                        'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
                         'wodate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Work Order Date', example='2022-03-10 00:00:00'),
                         'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
                         'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status', example='Open'),
@@ -1352,7 +1352,7 @@ class WOCreateView(APIView):
         data = request.data
         user = request.user
         icompanyid = user.icompanyid
-        seriesid = data.get('wo_master_data').get('SeriesID')
+        seriesid = data.get('wo_master_data').get('seriesid')
 
         
         # below only the serializer data id given because the id is req .
