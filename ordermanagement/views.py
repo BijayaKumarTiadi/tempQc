@@ -1252,7 +1252,7 @@ class WOCreateView(APIView):
                 'wo_master_data': openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
+                        'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='02192'),
                         'wodate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Work Order Date', example='2022-03-10 00:00:00'),
                         'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
                         'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status', example='Open'),
@@ -1268,7 +1268,7 @@ class WOCreateView(APIView):
                         'proofingchk': openapi.Schema(type=openapi.TYPE_INTEGER, description='Proofing Check', example=1),
                         
                     },
-                    required=['SeriesID', 'WODate', 'ClientId']
+                    required=['seriesid', 'WODate', 'ClientId']
                 ),
                 'wo_detail_data': openapi.Schema(
                     type=openapi.TYPE_ARRAY,
@@ -1356,7 +1356,7 @@ class WOCreateView(APIView):
 
         
         # below only the serializer data id given because the id is req .
-        series_serializer = SeriesMasterSaveSerializer(data={'id' : data.get('wo_master_data').get('SeriesID')}, context={'request': request, 'icompanyid': icompanyid,'id': seriesid})
+        series_serializer = SeriesMasterSaveSerializer(data={'id' : data.get('wo_master_data').get('seriesid')}, context={'request': request, 'icompanyid': icompanyid,'id': seriesid})
 
         if series_serializer.is_valid():
             try:
@@ -1453,7 +1453,7 @@ class WOCreateView(APIView):
                 'wo_master_data': openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'SeriesID': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
+                        'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
                         'wodate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Work Order Date', example='2022-03-10 00:00:00'),
                         'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
                         'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status', example='Open'),
@@ -1468,7 +1468,7 @@ class WOCreateView(APIView):
                         'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', example='Some remarks'),
                         'proofingchk': openapi.Schema(type=openapi.TYPE_INTEGER, description='Proofing Check', example=1),
                     },
-                    required=['SeriesID', 'wodate', 'clientid']
+                    required=['seriesid', 'wodate', 'clientid']
                 ),
                 'wo_detail_data': openapi.Schema(
                     type=openapi.TYPE_ARRAY,
