@@ -1455,6 +1455,7 @@ class WOCreateView(APIView):
                     properties={
                         'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='SERIES123'),
                         'wodate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Work Order Date', example='2022-03-10 00:00:00'),
+                        'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order Number', example='YP3/WO/2023/921'),
                         'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
                         'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status', example='Open'),
                         'wono': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order Number', example='WO123'),
@@ -1548,10 +1549,12 @@ class WOCreateView(APIView):
         tags=['Order Management / Workorder']
     )
     
-    def put(self, request, woid):
+    def put(self, request):
         data = request.data
         user = request.user
         icompanyid = user.icompanyid
+        woid = data.get('wo_master_data').get('woid')
+        print(woid)
 
         try:
             with transaction.atomic():

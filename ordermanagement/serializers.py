@@ -275,6 +275,7 @@ class ItemWodetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItemWodetail
         fields = '__all__'
+        # exlude = ['']
 
     def get_del_address(self, obj):
         del_address = Companydelqtydate.objects.filter(woid=obj.woid, icompanyid=obj.icompanyid)
