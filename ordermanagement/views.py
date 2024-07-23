@@ -1969,4 +1969,149 @@ class CompanyListView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+class WoRegisterView(APIView):
+    """
+    API View to process a JSON payload and call the insert_into_WOdetail_WORegister_new stored procedure.
+    This endpoint validates the provided parameters, calls the stored procedure, and returns the result as a JSON response.
+
+    Authentication:
+        - JWT Authentication
+        - Requires the user to be authenticated and have staff permissions.
+
+    Required Payload:
+        - PICompanyID (string): Company ID
+        - from_date (string): Start date in YYYY-MM-DD format
+        - to_date (string): End date in YYYY-MM-DD format
+        - order_type (integer): Order type
+        - report_no (integer): Report number
+        - postatus (string): PO status
+        - closeper (integer): Close percentage
+        - isexpdeldate (integer): Expected delivery date flag (0 or 1)
+        - edate (string): End date
+        - client_name (string): Client name
+        - marketing_executive (string): Marketing executive ID
+        - pclass (string): Class
+        - view_p (string): View parameter
+        - param_p (string): Parameter P
+
+    Responses:
+        - 200: Data processed successfully
+        - 400: Invalid input data
+        - 401: Unauthorized: Invalid access token
+        - 500: Failed to process the data. Please try again later.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Process payload and call stored procedure",
+        operation_description="Process a JSON payload and call the insert_into_WOdetail_WORegister_new stored procedure.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'PICompanyID': openapi.Schema(type=openapi.TYPE_STRING, description='Company ID'),
+                'from_date': openapi.Schema(type=openapi.TYPE_STRING, format='date', description='From Date (YYYY-MM-DD)'),
+                'to_date': openapi.Schema(type=openapi.TYPE_STRING, format='date', description='To Date (YYYY-MM-DD)'),
+                'order_type': openapi.Schema(type=openapi.TYPE_INTEGER, description='Order Type'),
+                'report_no': openapi.Schema(type=openapi.TYPE_INTEGER, description='Report Number'),
+                'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status'),
+                'closeper': openapi.Schema(type=openapi.TYPE_INTEGER, description='Close Percentage'),
+                'isexpdeldate': openapi.Schema(type=openapi.TYPE_INTEGER, description='Expected Delivery Date Flag (0 or 1)'),
+                'edate': openapi.Schema(type=openapi.TYPE_STRING, description='End Date'),
+                'client_name': openapi.Schema(type=openapi.TYPE_STRING, description='Client Name'),
+                'marketing_executive': openapi.Schema(type=openapi.TYPE_STRING, description='Marketing Executive ID'),
+                'pclass': openapi.Schema(type=openapi.TYPE_STRING, description='Class'),
+                'view_p': openapi.Schema(type=openapi.TYPE_STRING, description='View Parameter'),
+                'param_p': openapi.Schema(type=openapi.TYPE_STRING, description='Parameter P')
+            },
+            example={
+                'PICompanyID': '00001',
+                'from_date': '2024-04-01',
+                'to_date': '2024-07-23',
+                'order_type': 0,
+                'report_no': 1,
+                'postatus': 'All Records',
+                'closeper': 0,
+                'isexpdeldate': 0,
+                'edate': '0',
+                'client_name': '0',
+                'marketing_executive': '0',
+                'pclass': '0',
+                'view_p': '',
+                'param_p': ''
+            }
+        ),
+        responses={
+            200: 'Data processed successfully',
+            400: 'Invalid input data',
+            401: 'Unauthorized: Invalid access token',
+            500: 'Failed to process the data. Please try again later.'
+        },
+        tags=['Order Management / Workorder']
+    )
+    def post(self, request):
+        """
+        Handle POST request to process the JSON payload and call a stored procedure.
+
+        Validates the provided parameters, calls the insert_into_WOdetail_WORegister_new stored procedure,
+        and returns the result as a JSON response.
+
+        Args:
+            request (HttpRequest): The request object containing the JSON payload.
+
+        Returns:
+            Response: The data from the stored procedure or an error message.
+        """
+        payload = request.data
+        required_fields = ['PICompanyID', 'from_date', 'to_date', 'order_type', 'report_no', 'postatus', 'closeper', 'isexpdeldate', 'edate', 'client_name', 'marketing_executive', 'pclass', 'view_p', 'param_p']
+        
+        missing_fields = [field for field in required_fields if field not in payload]
+        if missing_fields:
+            return Response({"error": f"Missing fields: {', '.join(missing_fields)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        PICompanyID = payload['PICompanyID']
+        from_date = payload['from_date']
+        to_date = payload['to_date']
+        order_type = payload['order_type']
+        report_no = payload['report_no']
+        postatus = payload['postatus']
+        closeper = payload['closeper']
+        isexpdeldate = payload['isexpdeldate']
+        edate = payload['edate']
+        client_name = payload['client_name']
+        marketing_executive = payload['marketing_executive']
+        pclass = payload['pclass']
+        view_p = payload['view_p']
+        param_p = payload['param_p']
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc('insert_into_WOdetail_WORegister_new', [PICompanyID, from_date, to_date, order_type, report_no, postatus, closeper, isexpdeldate, edate, client_name, marketing_executive, pclass, view_p, param_p])
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in cursor.fetchmany(50)]#cursor.fetchall() #for all
+                print(results)
+            
+            response_data = {
+                "message": "Success",
+                "data": results
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 # End Order Management Section 

@@ -22,7 +22,9 @@ class CustomUserManager(BaseUserManager):
         
         user = self.model(userloginname=userloginname, **extra_fields)
         if password:
-            user.password = make_password(password)
+            # user.password = make_password(password)
+            user.password = password  #make_password(password) -- if user this , please remove at the model and vice-versa
+
         user.save(using=self._db)
         return user
 

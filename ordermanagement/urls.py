@@ -16,6 +16,7 @@ from .views import WoListAPIView
 from .views import WoJobListAPIView
 from .views import WoListView
 from .views import CompanyListView
+from .views import WoRegisterView
 
 urlpatterns = [
 
@@ -38,6 +39,7 @@ urlpatterns = [
     path('/Workorder/soJoblist/', WoJobListAPIView.as_view(), name='so-job-list'),
     path('/Workorder/woList/', WoListView.as_view(), name='wo-list'),
     path('/Workorder/companyList/', CompanyListView.as_view(), name='Company-list'),
+    path('/Workorder/register/', WoRegisterView.as_view(), name='wo-register'),
 
     # path('/Workorder/status/', Workorder.as_view(), name='Workorder'), # approve  reject normal , table item_WODetail col - approved
 
