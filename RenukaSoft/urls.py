@@ -50,7 +50,7 @@ urlpatterns = [
     path("api/v1/",include('accounts.urls')),
     path("api/v1/qm",include('estimation.urls')),
     path("api/v1/om",include('ordermanagement.urls')),
-
+    path("api/v1/Gen",include('GeneralAPIs.urls')),
 
 
     
