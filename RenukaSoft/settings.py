@@ -54,8 +54,12 @@ INSTALLED_APPS = [
     'drf_yasg',
     'ordermanagement',
     'mastersapp',
+
+
+
     'stockallocation',
     'proformainvoice',
+
 ]
 
 MIDDLEWARE = [

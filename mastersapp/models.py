@@ -491,3 +491,12 @@ class Companydelqtydate(models.Model):
     class Meta:
         managed = False
         db_table = 'companydelqtydate'
+
+class ProductCategoryMaster(models.Model):
+    pcategoryid = models.IntegerField(db_column='PCategoryid', primary_key=True)
+    particular = models.CharField(db_column='Particular', max_length=100)
+    isactive = models.IntegerField(db_column='Isactive')
+
+    class Meta:
+        managed = False
+        db_table = 'product_category_master'
