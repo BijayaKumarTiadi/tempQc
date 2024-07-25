@@ -6,7 +6,7 @@ from mastersapp.models import Employeemaster, ItemFpmasterext
 from mastersapp.models import Companymaster
 from mastersapp.models import Seriesmaster
 from mastersapp.models import CompanymasterEx1
-from mastersapp.models import ItemWomaster
+from proformainvoice.models import ItemWomaster
 from mastersapp.models import Companydelqtydate
 from mastersapp.models import ItemWodetail
 
@@ -131,7 +131,6 @@ class CompanyDelQtyDateSerializer(serializers.ModelSerializer):
 
 
 class WODetailSerializer(serializers.ModelSerializer):
-    del_address = CompanyDelQtyDateSerializer(many=True)
     artworkno = serializers.CharField(required=False, allow_blank=True)
     freight = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     class Meta:
@@ -140,17 +139,11 @@ class WODetailSerializer(serializers.ModelSerializer):
         'woid', 'jobno', 'icompanyid', 'itemdesc', 'itemcode', 'codeno', 'itemid', 'quantity', 'qtyplus',
         'qtyminus', 'rate', 'actualrate', 'unitid', 'rateinthousand', 'rateunit', 'artworkno',
         'amount', 'percentvar', 'freight', 'specification', 'ref', 'color', 'cp', 'docnotion',
-        'remarks', 'transfer_wo', 'hold', 'dontshowforjc', 'artworkreceive', 'closedate', 'templateid','isactive', 'del_address']
+        'remarks', 'transfer_wo', 'hold', 'dontshowforjc', 'artworkreceive', 'closedate', 'templateid','isactive']
         extra_kwargs = {field: {'required': False} for field in fields}
 
     def create(self, validated_data):
-        del_address_data = validated_data.pop('del_address', [])
         item_wodetail = ItemWodetail.objects.create(**validated_data)
-        
-        for del_address in del_address_data:
-            del_address['woid'] = item_wodetail.woid
-            Companydelqtydate.objects.create(**del_address)
-        
         return item_wodetail
 
 
@@ -270,16 +263,11 @@ class ItemFpmasterextSerializer(serializers.ModelSerializer):
         fields = ['description', 'acccode', 'iprefix']
 
 class ItemWodetailSerializer(serializers.ModelSerializer):
-    del_address = serializers.SerializerMethodField()
 
     class Meta:
         model = ItemWodetail
         fields = '__all__'
         # exlude = ['']
-
-    def get_del_address(self, obj):
-        del_address = Companydelqtydate.objects.filter(woid=obj.woid, icompanyid=obj.icompanyid)
-        return CompanydelqtydateSerializer(del_address, many=True).data
 
 class ItemWomasterSerializer(serializers.ModelSerializer):
     class Meta:
