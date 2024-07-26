@@ -1707,3 +1707,61 @@ class WoRegisterView(APIView):
 
 
 # End Order Management Section 
+
+#For print view
+
+class PrintPIDataView(APIView):
+    """
+    View to call Cr_Print_PI_Data stored procedure with an invoice number.
+    Accessible only to authenticated users.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve PI Data",
+        operation_description="Calls the Cr_Print_PI_Data stored procedure with the provided invoice number.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'invoice_no': openapi.Schema(type=openapi.TYPE_STRING, description='Invoice number to call the stored procedure'),
+            },
+            required=['invoice_no'],
+            example={"invoice_no": "SSGI/PFI/23-24/0001"}
+        ),
+        responses={
+            200: "Success",
+            400: "Invalid input data",
+            401: "Unauthorized",
+            500: "Internal server error"
+        },
+        tags=['Proforma Invoice / Workorder']
+    )
+    def post(self, request):
+        invoice_no = request.data.get('invoice_no')
+        if not invoice_no:
+            return Response({"error": "Invoice number is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc('Cr_Print_PI_Data', [invoice_no])
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            return Response({"message": "Success", "data": results}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            error_message = f"Failed to retrieve PI data: {str(e)}"
+            return Response({"message": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#End print view
