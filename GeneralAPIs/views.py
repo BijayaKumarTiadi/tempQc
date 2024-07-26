@@ -145,8 +145,6 @@ class DropDownView(APIView):
     def post(self, request):
         user = GetUserData.get_user(request)
         icompanyid = user.icompanyid
-        print(icompanyid)
-
         if icompanyid is None:
             return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
 

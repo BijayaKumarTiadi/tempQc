@@ -54,11 +54,9 @@ INSTALLED_APPS = [
     'drf_yasg',
     'ordermanagement',
     'mastersapp',
-    'GeneralAPIs',
-
-
     'stockallocation',
     'proformainvoice',
+    'generalapis',
 
 ]
 

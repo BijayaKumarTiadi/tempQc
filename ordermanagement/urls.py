@@ -17,6 +17,7 @@ from .views import WoJobListAPIView
 from .views import WoListView
 from .views import CompanyListView
 from .views import WoRegisterView
+from generalapis.views import DropDownView
 
 urlpatterns = [
 
@@ -40,6 +41,8 @@ urlpatterns = [
     path('/Workorder/woList/', WoListView.as_view(), name='wo-list'),
     path('/Workorder/companyList/', CompanyListView.as_view(), name='Company-list'),
     path('/Workorder/register/', WoRegisterView.as_view(), name='wo-register'),
+    path('/Workorder/dropdown/', DropDownView.as_view(), name='dropdown-view'),
+
 
     # path('/Workorder/status/', Workorder.as_view(), name='Workorder'), # approve  reject normal , table item_WODetail col - approved
 
