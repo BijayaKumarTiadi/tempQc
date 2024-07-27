@@ -1103,7 +1103,7 @@ class WOCreateView(APIView):
                 'qtyminus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Minus', example=5),
                 'unitid': openapi.Schema(type=openapi.TYPE_STRING, description='Unit ID', max_length=10, example='UNIT123'),
                 'rate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate', example=10.5),
-                'rateunit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit', max_length=10, example='kg'),
+                'rateunit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit', max_length=10, example='INR / USD'),
                 'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Amount', example=1050.75),
                 'freight': openapi.Schema(type=openapi.TYPE_NUMBER, description='Freight', example=0.0),
                 'insurance': openapi.Schema(type=openapi.TYPE_NUMBER, description='Insurance', example=0.0),

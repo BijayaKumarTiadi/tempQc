@@ -19,7 +19,7 @@ class ItemPiDetail(models.Model):
     rate = models.FloatField(db_column='Rate')  
     rateunit = models.CharField(db_column='Rateunit', max_length=10)  
     amount = models.FloatField(db_column='Amount')  
-    freight = models.FloatField(db_column='Freight')  
+    freight = models.FloatField(db_column='Freight',default=0, blank=True)  
     insurance = models.FloatField(db_column='Insurance')  
     specification = models.CharField(db_column='Specification', max_length=10)  
     remarks = models.CharField(db_column='Remarks', max_length=1000)  
