@@ -14,9 +14,12 @@ from django.db import connection, connections, DatabaseError
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from rest_framework import serializers
+from django.http import HttpResponse
+
 #--custome imports
 from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
+from proformainvoice.helper import __gen_pdf__
 
 
 from mastersapp.models import ItemPiMaster
@@ -1807,6 +1810,7 @@ class PrintPIDataView(APIView):
     )
     def post(self, request):
         invoice_no = request.data.get('invoice_no')
+        print(invoice_no)
         if not invoice_no:
             return Response({"error": "Invoice number is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1815,8 +1819,11 @@ class PrintPIDataView(APIView):
                 cursor.callproc('Cr_Print_PI_Data', [invoice_no])
                 columns = [col[0] for col in cursor.description]
                 results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-            return Response({"message": "Success", "data": results}, status=status.HTTP_200_OK)
+                print(results[0])
+                pdf_buffer = __gen_pdf__(results[0])
+            response = HttpResponse(pdf_buffer, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Proforma_Invoice_{invoice_no}.pdf"'
+            return response
 
         except Exception as e:
             error_message = f"Failed to retrieve PI data: {str(e)}"
