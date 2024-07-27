@@ -500,3 +500,46 @@ class ProductCategoryMaster(models.Model):
     class Meta:
         managed = False
         db_table = 'product_category_master'
+
+
+class ItemPiMaster(models.Model):
+    invid = models.AutoField(db_column='INVID', primary_key=True)  
+    icompanyid = models.CharField(db_column='ICompanyID', max_length=10)  
+    docid = models.CharField(db_column='DOCID', max_length=30)  
+    sprefix = models.CharField(db_column='SPrefix', max_length=15)  
+    invno = models.CharField(db_column='INVNO', max_length=10)  
+    ssufix = models.CharField(db_column='SSufix', max_length=2, blank=True, null=True, default="")  
+    invdate = models.DateTimeField(db_column='INVDate', blank=True, null=True)  
+    pono = models.CharField(db_column='PONO', max_length=30, blank=True, null=True)  
+    podate = models.DateTimeField(db_column='PODate')  
+    clientid = models.CharField(db_column='ClientId', max_length=10)  
+    execid = models.CharField(db_column='ExecId', max_length=20)  
+    orderedby = models.CharField(db_column='OrderedBy', max_length=45)  
+    shipvia = models.CharField(db_column='Shipvia', max_length=50)  
+    paymentday = models.CharField(db_column='PaymentDay', max_length=50)  
+    paymenttype = models.CharField(db_column='PaymentType', max_length=100)  
+    remarks = models.CharField(db_column='Remarks', max_length=100)  
+    isactive = models.IntegerField(db_column='IsActive')  
+    auid = models.CharField(db_column='AUID', max_length=10)  
+    adatetime = models.CharField(db_column='ADateTime', max_length=45)  
+    muid = models.CharField(db_column='MUID', max_length=10)  
+    mdatetime = models.CharField(db_column='MDateTime', max_length=45)  
+    duid = models.CharField(db_column='DUID', max_length=10)  
+    ddatetime = models.CharField(db_column='DDateTime', max_length=45)  
+    filelocation = models.CharField(db_column='FileLocation', max_length=225)  
+    docnotion = models.IntegerField(db_column='DocNotion')  
+    deliveryaddressid = models.CharField(db_column='DeliveryAddressID', max_length=10, blank=True, null=True)  
+    deliveryaddress = models.CharField(db_column='Deliveryaddress', max_length=10)  
+    taxid = models.IntegerField(db_column='Taxid')  
+    terms = models.CharField(db_column='Terms', max_length=100)  
+    ratetype = models.CharField(db_column='RateType', max_length=5)  
+    basicamount = models.FloatField(db_column='BasicAmount')  
+    freight = models.FloatField(db_column='Freight')  
+    insurance = models.FloatField(db_column='Insurance')  
+    totalamt = models.FloatField(db_column='TotalAmt')  
+    seriesid = models.CharField(db_column='SeriesID', max_length=10, blank=True, null=True)  
+
+    class Meta:
+        managed = False
+        db_table = 'item_pi_master'
+        unique_together = (('invid', 'docid', 'docnotion'),)

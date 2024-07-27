@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-import os
 import json
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser
@@ -20,8 +19,8 @@ from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
 
 
-from proformainvoice.models import ItemWomaster
-from proformainvoice.models import ItemWodetail
+from mastersapp.models import ItemPiMaster
+from proformainvoice.models import ItemPiDetail
 from mastersapp.models import Seriesmaster
 from mastersapp.models import Companymaster
 from mastersapp.models import Employeemaster
@@ -32,7 +31,7 @@ from .models import ItemSpec
 from .models import Mypref
 
 #-- serializers
-from .serializers import SeriesSerializer
+from .serializers import ItemPiDetailSerializer, ItemPiMasterSerializer, SeriesSerializer
 from .serializers import CompanySerializer
 from .serializers import EmployeeSerializer
 from .serializers import PaymentTermsSerializer
@@ -60,19 +59,19 @@ Informations : ...
 
 class SeriesView(APIView):
     """
-    API View to retrieve the list of active series for 'Work Order' documents for a specific company
+    API View to retrieve the list of active series for 'Proforma Invoice' documents for a specific company
     and list of active companies.
 
     This view requires JWT authentication and specific permissions to be accessed. The series are filtered
-    by 'Work Order' document type, company ID, and their active status. The results are returned in descending
+    by 'Proforma Invoice' document type, company ID, and their active status. The results are returned in descending
     order by ID.
     """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
-        operation_summary="Get active 'Work Order' series and active companies  On Page Load Dropdown Lists . ",
-        operation_description="Retrieve the list of active series for 'Work Order' documents for the authenticated user's company and list of all active companies.",
+        operation_summary="Get active 'Proforma Invoice' series and active companies  On Page Load Dropdown Lists . ",
+        operation_description="Retrieve the list of active series for 'Proforma Invoice' documents for the authenticated user's company and list of all active companies.",
         manual_parameters=[
             openapi.Parameter(
                 name='Authorization',
@@ -137,7 +136,7 @@ class SeriesView(APIView):
         try:
             # Fetch active 'Work Order' series
             series = Seriesmaster.objects.filter(
-                doctype='Work Order',
+                doctype='Proforma Invoice',
                 icompanyid=icompanyid,
                 # isactive=True
             ).order_by('-id')
@@ -148,16 +147,16 @@ class SeriesView(APIView):
             companies_results = CompanySerializer(companies, many=True).data
 
             # Fetch active employees
-            employees = Employeemaster.objects.filter(isactive=True).order_by('empname')
-            employees_results = EmployeeSerializer(employees, many=True).data
+            # employees = Employeemaster.objects.filter(isactive=True).order_by('empname')
+            # employees_results = EmployeeSerializer(employees, many=True).data
 
             # Fetch active payment terms
-            payment_terms = Paymentterms.objects.filter(isactive=True)
-            payment_terms_results = PaymentTermsSerializer(payment_terms, many=True).data
+            # payment_terms = Paymentterms.objects.filter(isactive=True)
+            # payment_terms_results = PaymentTermsSerializer(payment_terms, many=True).data
 
             # Fetch prefs 
-            mypref_load = Mypref.objects.filter(heading="WorkOrder")
-            mypref_load_results = MyprefSerializer(mypref_load, many=True).data
+            # mypref_load = Mypref.objects.filter(heading="WorkOrder")
+            # mypref_load_results = MyprefSerializer(mypref_load, many=True).data
 
             # Combine all responses
             response_data = {
@@ -165,9 +164,9 @@ class SeriesView(APIView):
                 "data": {
                 'seriesresp': series_results,
                 'companiesresp': companies_results,
-                'marketingExe': employees_results,
-                'pay_terms': payment_terms_results,
-                'prefs': mypref_load_results,
+                # 'marketingExe': employees_results,
+                # 'pay_terms': payment_terms_results,
+                # 'prefs': mypref_load_results,
             }
             }
 
@@ -273,19 +272,54 @@ class ClientDataView(APIView):
 
         try:
             # Fetch contact person details
-            contact_person = CompanymasterEx1.objects.filter(companyid=client_id, isactive=True)
-            contact_person_results = CompanyEx1Serializer(contact_person, many=True).data
+            # select empname,empid from companymaster as a,employeemaster as b
+            # where a.repid=b.empid and a.companyid='00102'
+            # contact_person = CompanymasterEx1.objects.filter(companyid=client_id, isactive=True)
+            # contact_person_results = CompanyEx1Serializer(contact_person, many=True).data
+            #contact_person
+            query = """
+                select empname,empid from companymaster as a,employeemaster as b
+                where a.repid=b.empid and a.companyid=%s
+            """
+            # AND ICompanyID = %s add for future reference , fetch by icompany id only .
+            with connection.cursor() as cursor:
+                cursor.execute(query, [client_id])
+                rows = cursor.fetchall()
+            contact_person_results = [
+                {
+                    'empname': row[0],
+                    'empid': row[1],
+                }
+                for row in rows
+            ]
+            #end contact_person
+            #unit_list
+            query = """
+                select unitid,unitname from item_unit_master  where unitid in('00011','00018','00201')
+            """
+            # AND ICompanyID = %s add for future reference , fetch by icompany id only .
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+            unit_list_results = [
+                {
+                    'unitid': row[0],
+                    'unitname': row[1],
+                }
+                for row in rows
+            ]
+            #end unit_list
 
             # Fetch payterms and marketing executive
             company_details = Companymaster.objects.filter(companyid=client_id, isactive=True).first()
             if not company_details:
                 return Response({'error': 'No company found with the given ID'}, status=status.HTTP_404_NOT_FOUND)
 
-            payterms = Paymentterms.objects.filter(payid=company_details.payid, isactive=True)
-            payterms_results = PaymentTermsSerializer(payterms, many=True).data
+            # payterms = Paymentterms.objects.filter(payid=company_details.payid, isactive=True)
+            # payterms_results = PaymentTermsSerializer(payterms, many=True).data
 
-            marketing_executive = Employeemaster.objects.filter(empid=company_details.repid, isactive=True)
-            marketing_executive_results = EmployeeSerializer(marketing_executive, many=True).data
+            # marketing_executive = Employeemaster.objects.filter(empid=company_details.repid, isactive=True)
+            # marketing_executive_results = EmployeeSerializer(marketing_executive, many=True).data
 
             query = """
                 SELECT a.RecordId, a.CompanyName, Get_CompanyNameByRecordId(a.RecordId) as CompanyAddress 
@@ -312,8 +346,8 @@ class ClientDataView(APIView):
                 "message": "Success",
                 "data": {
                 'contact_person': contact_person_results,
-                'pay_terms': payterms_results,
-                'marketing_executive': marketing_executive_results,
+                'unit_list': unit_list_results,
+                # 'marketing_executive': marketing_executive_results,
                 'delivery_address': delivery_address_results,
             }}
             return Response(response_data, status=status.HTTP_200_OK)
@@ -1020,67 +1054,85 @@ class WOCreateView(APIView):
         ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
+            properties = {
+    'pi_master_data': openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'invno': openapi.Schema(type=openapi.TYPE_STRING, description='Invoice Number', max_length=10, example='INV123'),
+            'invdate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Invoice Date', example='2023-07-01T12:00:00Z'),
+            'pono': openapi.Schema(type=openapi.TYPE_STRING, description='PO Number', max_length=30, example='PO123'),
+            'podate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='PO Date', example='2023-07-01T12:00:00Z'),
+            'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', max_length=10, example='CLIENT123'),
+            'execid': openapi.Schema(type=openapi.TYPE_STRING, description='Exec ID', max_length=20, example='EXEC123'),
+            'orderedby': openapi.Schema(type=openapi.TYPE_STRING, description='Ordered By', max_length=45, example='John Doe'),
+            'shipvia': openapi.Schema(type=openapi.TYPE_STRING, description='Ship Via', max_length=50, example='Courier'),
+            # 'paymentday': openapi.Schema(type=openapi.TYPE_STRING, description='Payment Day', max_length=50, example='30 Days'),
+            # 'paymenttype': openapi.Schema(type=openapi.TYPE_STRING, description='Payment Type', max_length=100, example='Credit'),
+            'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', max_length=100, example='Some remarks'),
+            # 'muid': openapi.Schema(type=openapi.TYPE_STRING, description='MUID', max_length=10, example='MUID123'),
+            # 'mdatetime': openapi.Schema(type=openapi.TYPE_STRING, description='M DateTime', max_length=45, example='2023-07-01T12:00:00Z'),
+            # 'duid': openapi.Schema(type=openapi.TYPE_STRING, description='DUID', max_length=10, example='DUID123'),
+            # 'ddatetime': openapi.Schema(type=openapi.TYPE_STRING, description='D DateTime', max_length=45, example='2023-07-01T12:00:00Z'),
+            # 'filelocation': openapi.Schema(type=openapi.TYPE_STRING, description='File Location', max_length=225, example='/path/to/file'),
+            'deliveryaddressid': openapi.Schema(type=openapi.TYPE_STRING, description='Delivery Address ID', max_length=10, example='ADDR123'),
+            'deliveryaddress': openapi.Schema(type=openapi.TYPE_STRING, description='Delivery Address', max_length=100, example='123 Main St'),
+            'taxid': openapi.Schema(type=openapi.TYPE_INTEGER, description='Tax ID', example=1),
+            'terms': openapi.Schema(type=openapi.TYPE_STRING, description='Terms', max_length=100, example='Net 30'),
+            # 'ratetype': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Type', max_length=5, example='Fixed'),
+            'basicamount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Basic Amount', example=1000.0),
+            'freight': openapi.Schema(type=openapi.TYPE_NUMBER, description='Freight', example=50.0),
+            'insurance': openapi.Schema(type=openapi.TYPE_NUMBER, description='Insurance', example=25.0),
+            'totalamt': openapi.Schema(type=openapi.TYPE_NUMBER, description='Total Amount', example=1075.0),
+            'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', max_length=10, example='SERIES123')
+        },
+        required=['podate', 'clientid']
+    ),
+    'pi_detail_data': openapi.Schema(
+        type=openapi.TYPE_ARRAY,
+        items=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
             properties={
-                'wo_master_data': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', example='02192'),
-                        'wodate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Work Order Date', example='2022-03-10 00:00:00'),
-                        'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', example='CLIENT123'),
-                        'postatus': openapi.Schema(type=openapi.TYPE_STRING, description='PO Status', example='Open'),
-                        'wono': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order Number', example='WO123'),
-                        'podate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='PO Date', example='2024-06-25 22:16:44'),
-                        'poreceivedate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='PO Recieve Date', example='2022-03-10 00:00:00'),
-                        'execid': openapi.Schema(type=openapi.TYPE_STRING, description='Exec ID', example='EXEC123'),
-                        'orderedby': openapi.Schema(type=openapi.TYPE_STRING, description='Ordered By', example='John Doe'),
-                        'paymentday': openapi.Schema(type=openapi.TYPE_INTEGER, description='Payment Day', example=30),
-                        'paymenttype': openapi.Schema(type=openapi.TYPE_STRING, description='Payment Type', example='Credit'),
-                        'filelocation': openapi.Schema(type=openapi.TYPE_STRING, description='File Location', example='/path/to/file'),
-                        'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', example='Some remarks'),
-                        'proofingchk': openapi.Schema(type=openapi.TYPE_INTEGER, description='Proofing Check', example=1),
-                        
-                    },
-                    required=['seriesid', 'WODate', 'ClientId']
-                ),
-                'wo_detail_data': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            # 'JobNo': openapi.Schema(type=openapi.TYPE_STRING, description='Job Number', example='JOB123'),
-                            'itemdesc': openapi.Schema(type=openapi.TYPE_STRING, description='Item Description', example='Item Description'),
-                            'itemcode': openapi.Schema(type=openapi.TYPE_STRING, description='Item Code', example='ITEM123'),
-                            'codeno': openapi.Schema(type=openapi.TYPE_STRING, description='Code Number', example='CODE123'),
-                            'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', example='ITEM123'),
-                            'quantity': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity', example=100),
-                            'qtyplus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Plus', example=10),
-                            'qtyminus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Minus', example=5),
-                            'rate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate', example=10.5),
-                            'actualrate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Actual Rate', example=10.5),
-                            'unitid': openapi.Schema(type=openapi.TYPE_STRING, description='Unit ID', example='UNIT123'),
-                            'rateinthousand': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate in Thousand', example=10000),
-                            'rateunit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit', example='kg'),
-                            'artworkno': openapi.Schema(type=openapi.TYPE_STRING, description='Artwork Number', example='ART123'),
-                            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Amount', example=1050.75),
-                            'percentvar': openapi.Schema(type=openapi.TYPE_NUMBER, description='Percent Variation', example=2.5),
-                            'freight': openapi.Schema(type=openapi.TYPE_STRING, description='Freight', example='0'),
-                            'specification': openapi.Schema(type=openapi.TYPE_STRING, description='Specification', example='SPEC123'),
-                            'ref': openapi.Schema(type=openapi.TYPE_STRING, description='Reference', example='REF123'),
-                            'color': openapi.Schema(type=openapi.TYPE_STRING, description='Color', example='Red'),
-                            'cp': openapi.Schema(type=openapi.TYPE_STRING, description='CP', example='P'),
-                            'docnotion': openapi.Schema(type=openapi.TYPE_STRING, description='Doc Notion', example='DOC123'),
-                            'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', example='Some remarks'),
-                            'transfer_wo': openapi.Schema(type=openapi.TYPE_INTEGER, description='Transfer WO', example=0),
-                            'hold': openapi.Schema(type=openapi.TYPE_INTEGER, description='Hold', example=0),
-                            'dontshowforjc': openapi.Schema(type=openapi.TYPE_INTEGER, description='Don\'t Show for JC', example=0),
-                            'artworkreceive': openapi.Schema(type=openapi.TYPE_INTEGER, description='Artwork Received', example=0),
-                            'closedate': openapi.Schema(type=openapi.TYPE_STRING, description='Closed', format=openapi.FORMAT_DATE, example='2060-01-01 00:00:00'),
-                            'templateid': openapi.Schema(type=openapi.TYPE_STRING, description='Template ID', example='TEMPLATE123'),
-                            'rowno': openapi.Schema(type=openapi.TYPE_INTEGER, description='Rowno', example=0)
-                        }
-                    )
-                )
+                'rowno': openapi.Schema(type=openapi.TYPE_INTEGER, description='Row Number', example=1),
+                'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', max_length=10, example='ITEM123'),
+                'itemcode': openapi.Schema(type=openapi.TYPE_STRING, description='Item Code', max_length=40, example='ITEMCODE123'),
+                'codeno': openapi.Schema(type=openapi.TYPE_STRING, description='Code Number', max_length=45, example='CODE123'),
+                'itemdesc': openapi.Schema(type=openapi.TYPE_STRING, description='Item Description', max_length=1000, example='Item Description'),
+                'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description='Quantity', example=100),
+                'percentvar': openapi.Schema(type=openapi.TYPE_NUMBER, description='Percent Variation', example=2.5),
+                'qtyplus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Plus', example=10),
+                'qtyminus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Minus', example=5),
+                'unitid': openapi.Schema(type=openapi.TYPE_STRING, description='Unit ID', max_length=10, example='UNIT123'),
+                'rate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate', example=10.5),
+                'rateunit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit', max_length=10, example='kg'),
+                'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Amount', example=1050.75),
+                'freight': openapi.Schema(type=openapi.TYPE_NUMBER, description='Freight', example=0.0),
+                'insurance': openapi.Schema(type=openapi.TYPE_NUMBER, description='Insurance', example=0.0),
+                'specification': openapi.Schema(type=openapi.TYPE_STRING, description='Specification', max_length=10, example='SPEC123'),
+                'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', max_length=1000, example='Some remarks'),
+                'hold': openapi.Schema(type=openapi.TYPE_INTEGER, description='Hold', example=0),
+                'clstatus': openapi.Schema(type=openapi.TYPE_INTEGER, description='CL Status', example=0),
+                'approved': openapi.Schema(type=openapi.TYPE_NUMBER, description='Approved', example=1.0),
+                'approvedby': openapi.Schema(type=openapi.TYPE_STRING, description='Approved By', max_length=45, example='Manager'),
+                'approvaldate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Approval Date', example='2023-07-01T12:00:00Z'),
+                'invoiceqty': openapi.Schema(type=openapi.TYPE_NUMBER, description='Invoice Quantity', example=100.0),
+                'constatus': openapi.Schema(type=openapi.TYPE_STRING, description='Con Status', max_length=200, example='Confirmed'),
+                'lastupdatedon': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Last Updated On', example='2023-07-01T12:00:00Z'),
+                'templateid': openapi.Schema(type=openapi.TYPE_STRING, description='Template ID', max_length=20, example='TEMPLATE123'),
+                'rateinthousand': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate in Thousand', example=10000.0),
+                'extra1': openapi.Schema(type=openapi.TYPE_STRING, description='Extra1', max_length=100, example='Extra1'),
+                'extra2': openapi.Schema(type=openapi.TYPE_STRING, description='Extra2', max_length=100, example='Extra2'),
+                'extra3': openapi.Schema(type=openapi.TYPE_STRING, description='Extra3', max_length=100, example='Extra3'),
+                'extra4': openapi.Schema(type=openapi.TYPE_STRING, description='Extra4', max_length=100, example='Extra4'),
+                'extra5': openapi.Schema(type=openapi.TYPE_STRING, description='Extra5', max_length=100, example='Extra5'),
+                'closedate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Close Date', example='2023-07-01T12:00:00Z'),
+                'closeby': openapi.Schema(type=openapi.TYPE_STRING, description='Close By', max_length=10, example='Admin'),
+                'closereason': openapi.Schema(type=openapi.TYPE_STRING, description='Close Reason', max_length=250, example='Completion'),
+                'orderqty': openapi.Schema(type=openapi.TYPE_INTEGER, description='Order Quantity', example=100)
             },
+            required=['rowno', 'itemid', 'quantity', 'rate', 'amount']
+                )
+            )
+        }   ,
             required=['wo_master_data', 'wo_detail_data']
         ),
         responses={
@@ -1102,14 +1154,16 @@ class WOCreateView(APIView):
     )
     def post(self, request):
         data = request.data
-        user = request.user
+        user = GetUserData.get_user(request)
+        auid = user.id
         icompanyid = user.icompanyid
-        seriesid = data.get('wo_master_data').get('seriesid')
+        print(auid,icompanyid)
+        print("auid,icompanyid")
+        seriesid = data.get('pi_master_data').get('seriesid')
 
         
         # below only the serializer data id given because the id is req .
-        series_serializer = SeriesMasterSaveSerializer(data={'id' : data.get('wo_master_data').get('seriesid')}, context={'request': request, 'icompanyid': icompanyid,'id': seriesid})
-
+        series_serializer = SeriesMasterSaveSerializer(data={'id' : data.get('pi_master_data').get('seriesid')}, context={'request': request, 'icompanyid': icompanyid,'id': seriesid})
         if series_serializer.is_valid():
             try:
                 with transaction.atomic():
@@ -1117,52 +1171,53 @@ class WOCreateView(APIView):
                     # new_woid = series_serializer.save()
                     instance = series_serializer.save()
 
+
                     new_woid = series_serializer.context.get('new_woid')
                     prefix = series_serializer.context.get('prefix')
                     current_docno = series_serializer.context.get('current_docno')
-                    sufix = series_serializer.context.get('sufix')
+                    sufix = series_serializer.context.get('ssufix')
 
-                    docnotion = 24 # this will be set after march , generate accordingly
+                    docnotion = 25 # this will be set after march , generate accordingly
 
-                    print(new_woid)
+                    print(new_woid,current_docno)
                     #End Item wo master
 
                     # Add the new_woid to the wo_master_data and wo_detail_data
-                    data['wo_master_data']['icompanyid'] = icompanyid
-                    data['wo_master_data']['woid'] = new_woid
-                    data['wo_master_data']['sprefix'] = prefix
-                    data['wo_master_data']['swono'] = current_docno
-                    data['wo_master_data']['ssufix'] = sufix
-                    data['wo_master_data']['docnotion'] = docnotion
-                    data['wo_master_data']['isactive'] = 0
-                    data['wo_master_data']['seriesid'] = seriesid
+                    data['pi_master_data']['icompanyid'] = icompanyid
+                    data['pi_master_data']['docid'] = new_woid
+                    data['pi_master_data']['invno'] = current_docno
+                    data['pi_master_data']['sprefix'] = prefix
+                    data['pi_master_data']['ssufix'] = sufix
+                    data['pi_master_data']['docnotion'] = docnotion
+                    data['pi_master_data']['isactive'] = 1
+                    data['pi_master_data']['auid'] = auid
 
                     # data['wo_detail_data']['woid'] = docnotion
-                    for index, detail in enumerate(data['wo_detail_data']):
+                    for index, detail in enumerate(data['pi_detail_data']):
                     # for detail in data['wo_detail_data']:
-                        detail['woid'] = new_woid
+                        detail['docid'] = new_woid
                         detail['icompanyid'] = icompanyid
                         detail['jobno'] =  str(new_woid) + "-"+ str(index + 1)
                         detail['docnotion'] = docnotion
-                        detail['isactive'] = 0
+                        detail['isactive'] = 1
                     # Save the item_womaster data
-                    wo_master_data = data['wo_master_data']
+                    wo_master_data = data['pi_master_data']
                     print(wo_master_data)
                     
-                    wo_master_serializer = WOMasterSerializer(data=wo_master_data)
+                    wo_master_serializer = ItemPiMasterSerializer(data=wo_master_data)
                     if wo_master_serializer.is_valid():
                         wo_master_serializer.save()
                     else:
                         raise serializers.ValidationError(wo_master_serializer.errors)
 
                     # Save the item_wodetail data
-                    for detail in data['wo_detail_data']:
-                        wo_detail_serializer = WODetailSerializer(data=detail)
+                    for detail in data['pi_detail_data']:
+                        wo_detail_serializer = ItemPiDetailSerializer(data=detail)
                         if wo_detail_serializer.is_valid():
                             wo_detail_serializer.save()
                         else:
                             raise serializers.ValidationError(wo_detail_serializer.errors)
-
+                    #####################
                     #     # Save the companydelqtydate data
                     #     for del_address in detail['del_address']:
                     #         del_qty_date_serializer = CompanyDelQtyDateSerializer(data=del_address)
@@ -1292,13 +1347,13 @@ class WoListAPIView(APIView):
         limitQ = f" LIMIT {limit}" if limit else ""
         
         query = f"""
-            SELECT a.WOID, MAX(date_format(a.WODate, '%d/%m/%Y')) AS WODate, a.WONo, Get_CompanyName(a.ClientId) AS CompanyName
-            FROM item_womaster AS a
-            JOIN item_wodetail AS b ON a.woid = b.woid
+            SELECT a.docid, MAX(date_format(a.invdate, '%d/%m/%Y')) AS invdate, a.invno, Get_CompanyName(a.ClientId) AS CompanyName
+            FROM item_pi_master AS a
+            JOIN item_pi_detail AS b ON a.docid = b.woid
             JOIN item_fpmasterext AS d ON b.ItemID = d.ProductID
             WHERE 1=1 {filters}
-            GROUP BY b.WOId, a.WONo
-            ORDER BY a.WODate DESC {limitQ};
+            GROUP BY b.woid, a.invno
+            ORDER BY a.invdate DESC {limitQ};
         """
 
         try:
@@ -1342,9 +1397,9 @@ class WoJobListAPIView(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order ID'),
+                'docid': openapi.Schema(type=openapi.TYPE_STRING, description='Proforma Invoice ID'),
             },
-            required=['woid']
+            required=['docid']
         ),
         responses={
             200: openapi.Response(
@@ -1378,7 +1433,7 @@ class WoJobListAPIView(APIView):
         tags=['Proforma Invoice / Workorder']
     )
     def post(self, request, format=None):
-        woid = request.data.get('woid', None)
+        docid = request.data.get('docid', None)
         
         if not woid:
             return Response(
@@ -1395,7 +1450,7 @@ class WoJobListAPIView(APIView):
 
         try:
             with connection.cursor() as cursor:
-                cursor.execute(query, [woid])
+                cursor.execute(query, [docid])
                 columns = [col[0] for col in cursor.description]
                 result = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -1418,8 +1473,8 @@ class WoListView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        operation_summary="Retrieve Work Order Data",
-        operation_description="Fetch data from ItemWodetail, ItemWomaster, and Companydelqtydate tables using woid and icompanyid.",
+        operation_summary="Retrieve Proforma Invoice Data",
+        operation_description="Fetch data from Item_pi_Detail, item_pi_master tables using docid and icompanyid.",
         manual_parameters=[
             openapi.Parameter(
                 name='Authorization',
@@ -1433,9 +1488,9 @@ class WoListView(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'woid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order ID'),
+                'docid': openapi.Schema(type=openapi.TYPE_STRING, description='Work Order ID'),
             },
-            required=['woid']
+            required=['docid']
         ),
         responses={
             200: openapi.Response(
@@ -1447,7 +1502,7 @@ class WoListView(APIView):
                         'data': openapi.Schema(
                             type=openapi.TYPE_OBJECT,
                             properties={
-                                'wo_data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                                'pi_data': openapi.Schema(type=openapi.TYPE_OBJECT)
                             }
                         )
                     }
@@ -1460,32 +1515,32 @@ class WoListView(APIView):
         tags=['Proforma Invoice / Workorder']
     )
     def post(self, request, format=None):
-        woid = request.data.get('woid')
+        docid = request.data.get('docid')
         user = request.user
         icompanyid = user.icompanyid
 
-        if not woid or not icompanyid:
+        if not docid or not icompanyid:
             return Response(
-                {"error": True, "message": "woid and icompanyid parameters are required"},
+                {"error": True, "message": "docid and icompanyid parameters are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            item_wodetail_qs = ItemWodetail.objects.filter(woid=woid, icompanyid=icompanyid)
-            item_womaster_qs = ItemWomaster.objects.filter(woid=woid, icompanyid=icompanyid)
+            item_pi_wodetail_qs = ItemPiDetail.objects.filter(docid=docid, icompanyid=icompanyid)
+            item_pi_womaster_qs = ItemPiMaster.objects.filter(docid=docid, icompanyid=icompanyid)
 
-            item_wodetail_serializer = ItemWodetailSerializer(item_wodetail_qs, many=True)
-            item_womaster_serializer = ItemWomasterSerializer(item_womaster_qs, many=True)
+            item_pi_wodetail_serializer = ItemWodetailSerializer(item_pi_wodetail_qs, many=True)
+            item_pi_womaster_serializer = ItemWomasterSerializer(item_pi_womaster_qs, many=True)
 
             result = {
-                "wo_master_data": item_womaster_serializer.data,
-                "wo_detail_data": item_wodetail_serializer.data,
+                "pi_master_data": item_pi_womaster_serializer.data,
+                "pi_detail_data": item_pi_wodetail_serializer.data,
             }
 
             response_data = {
                 "message": "Success",
                 "data": {
-                    "wo_data": result,
+                    "pi_data": result,
                 }
             }
             return Response(response_data, status=status.HTTP_200_OK)

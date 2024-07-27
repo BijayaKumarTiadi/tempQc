@@ -18,24 +18,20 @@ from .views import PrintPIDataView
 urlpatterns = [
 
     #Order Management - Dashboard URLS
-    path('/Workorder/', SeriesView.as_view(), name='Workorder'), # view create update delete 
-    path('/Workorder/client-data', ClientDataView.as_view(), name='client-data'),
-    path('/Workorder/product-by-fp/', ProductDetailsView.as_view(), name='product-details'),
-    path('/Workorder/product-by-estimation/', EstimatedProductView.as_view(), name='estimated-product-details'),
-    path('/Workorder/item-spec/', ItemSpecView.as_view(), name='item-spec'),
-    path('/Workorder/ratelist/', RateListView.as_view(), name='RateListView'),
-    path('/Workorder/save/', WOCreateView.as_view(), name='save'),
-    # re_path(r'^workorders/save/(?P<woid>.+)/$', WOCreateView.as_view(), name='update-workorder'),
-    path('/Workorder/soSearch/', WoListAPIView.as_view(), name='so-search'),
-    path('/Workorder/soJoblist/', WoJobListAPIView.as_view(), name='so-job-list'),
-    path('/Workorder/woList/', WoListView.as_view(), name='wo-list'),
-    path('/Workorder/companyList/', CompanyListView.as_view(), name='Company-list'),
-    path('/Workorder/register/', WoRegisterView.as_view(), name='wo-register'),
+    path('/series', SeriesView.as_view(), name='Workorder'), # Completed without names
+    path('/client-data', ClientDataView.as_view(), name='client-data'), # Completed without names
+    path('/product-by-fp/', ProductDetailsView.as_view(), name='product-details'), # Completed without names
+    # path('/product-by-estimation/', EstimatedProductView.as_view(), name='estimated-product-details'),
+    # path('/item-spec/', ItemSpecView.as_view(), name='item-spec'),
+    # path('/ratelist/', RateListView.as_view(), name='RateListView'),
+    path('/save/', WOCreateView.as_view(), name='save'),
 
-    path('/Workorder/printdata/', PrintPIDataView.as_view(), name='pi-printView'),
+    path('/soSearch/', WoListAPIView.as_view(), name='so-search'), #Script Incomplete ~@Rajat
+    path('/soJoblist/', WoJobListAPIView.as_view(), name='so-job-list'), #Script Incomplete  ~@Rajat
+    path('/woList/', WoListView.as_view(), name='wo-list'), #Completed all with names
+    path('/companyList/', CompanyListView.as_view(), name='Company-list'), #Completed all with names
+    # path('/register/', WoRegisterView.as_view(), name='wo-register'),
 
-    # path('/Workorder/status/', Workorder.as_view(), name='Workorder'), # approve  reject normal , table item_WODetail col - approved
-
-
+    path('/printdata/', PrintPIDataView.as_view(), name='pi-printView'),
 
 ]

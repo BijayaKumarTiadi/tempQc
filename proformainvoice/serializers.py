@@ -2,10 +2,11 @@
 from rest_framework import serializers
 from django.db import transaction
 # from .models import UploadedFile
-from mastersapp.models import Employeemaster, ItemFpmasterext
+from mastersapp.models import Employeemaster, ItemFpmasterext, ItemPiMaster
 from mastersapp.models import Companymaster
 from mastersapp.models import Seriesmaster
 from mastersapp.models import CompanymasterEx1
+from proformainvoice.models import ItemPiDetail
 from proformainvoice.models import ItemWomaster
 from mastersapp.models import Companydelqtydate
 from mastersapp.models import ItemWodetail
@@ -23,7 +24,8 @@ from .models import Mypref
 class SeriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Seriesmaster
-        fields = ['id', 'prefix','isactive']
+        fields = ['id', 'prefix','isactive','docno']
+        #Doc no fetched to show data initally .
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
@@ -84,7 +86,7 @@ class SeriesMasterSaveSerializer(serializers.ModelSerializer):
                 # Transaction Handling :- > The view uses transaction.atomic to ensure that the operations are atomic. 
                 # This prevents race conditions when multiple requests try to update the Seriesmaster table simultaneously.
                 series = Seriesmaster.objects.select_for_update().get(
-                    doctype='Work Order',
+                    doctype='Proforma Invoice',
                     id = seriesid,
                     isactive=1,
                     icompanyid=icompanyid
@@ -110,6 +112,31 @@ class SeriesMasterSaveSerializer(serializers.ModelSerializer):
 
 
 #This is auto require 
+class ItemPiMasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemPiMaster
+        fields = [
+            'invid', 'icompanyid', 'docid', 'sprefix', 'invno', 'ssufix', 'invdate', 'pono', 
+            'podate', 'clientid', 'execid', 'orderedby', 'shipvia', 'paymentday', 'paymenttype', 
+            'remarks', 'isactive', 'auid', 'adatetime', 'muid', 'mdatetime', 'duid', 'ddatetime', 
+            'filelocation', 'docnotion', 'deliveryaddressid', 'deliveryaddress', 'taxid', 'terms', 
+            'ratetype', 'basicamount', 'freight', 'insurance', 'totalamt', 'seriesid'
+        ]
+        extra_kwargs = {field: {'required': False} for field in fields}
+
+class ItemPiDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemPiDetail
+        fields = [
+            'internalid', 'icompanyid', 'docid', 'rowno', 'itemid', 'itemcode', 'codeno', 
+            'itemdesc', 'quantity', 'percentvar', 'qtyplus', 'qtyminus', 'unitid', 'rate', 
+            'rateunit', 'amount', 'freight', 'insurance', 'specification', 'remarks', 'isactive', 
+            'hold', 'clstatus', 'approved', 'approvedby', 'approvaldate', 'invoiceqty', 'constatus', 
+            'lastupdatedon', 'templateid', 'rateinthousand', 'extra1', 'extra2', 'extra3', 
+            'extra4', 'extra5', 'closedate', 'closeby', 'closereason', 'docnotion', 'orderqty'
+        ]
+        extra_kwargs = {field: {'required': False} for field in fields}
+
 class WOMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItemWomaster
@@ -265,13 +292,13 @@ class ItemFpmasterextSerializer(serializers.ModelSerializer):
 class ItemWodetailSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ItemWodetail
+        model = ItemPiDetail
         fields = '__all__'
         # exlude = ['']
 
 class ItemWomasterSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ItemWomaster
+        model = ItemPiMaster
         fields = '__all__'
 
 class CompanydelqtydateSerializer(serializers.ModelSerializer):
