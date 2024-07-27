@@ -1352,6 +1352,7 @@ class WoListAPIView(APIView):
             JOIN item_pi_detail AS b ON a.docid = b.docid
             JOIN item_fpmasterext AS d ON b.ItemID = d.productid
             WHERE 1=1 {filters}
+            GROUP BY a.docid, a.invno
             ORDER BY a.invdate desc, a.invno DESC {limitQ};
         """
         print(query)
