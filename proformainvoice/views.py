@@ -1202,7 +1202,7 @@ class WOCreateView(APIView):
                         detail['isactive'] = 1
                     # Save the item_womaster data
                     wo_master_data = data['pi_master_data']
-                    print(wo_master_data)
+                    # print(wo_master_data)
                     
                     wo_master_serializer = ItemPiMasterSerializer(data=wo_master_data)
                     if wo_master_serializer.is_valid():
@@ -1366,7 +1366,7 @@ class WoListAPIView(APIView):
             response_data = {
                 "message": "Success",
                 "data": {
-                    "wo_list": result,
+                    "pi_list": result,
                 }
             }
             return Response(response_data, status=status.HTTP_200_OK)
@@ -1460,7 +1460,7 @@ class WoJobListAPIView(APIView):
             response_data = {
                     "message": "Success",
                     "data": {
-                        "wo_data": result,
+                        "pi_data": result,
                     }}
             return Response(response_data, status=status.HTTP_200_OK)
 
