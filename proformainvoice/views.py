@@ -1352,9 +1352,9 @@ class WoListAPIView(APIView):
             JOIN item_pi_detail AS b ON a.docid = b.docid
             JOIN item_fpmasterext AS d ON b.ItemID = d.productid
             WHERE 1=1 {filters}
-            ORDER BY a.invdate a.invno DESC {limitQ};
+            ORDER BY a.invdate desc, a.invno DESC {limitQ};
         """
-        # print(query)
+        print(query)
 
         try:
             with connection.cursor() as cursor:
