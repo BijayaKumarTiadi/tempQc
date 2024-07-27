@@ -1352,8 +1352,7 @@ class WoListAPIView(APIView):
             JOIN item_pi_detail AS b ON a.docid = b.docid
             JOIN item_fpmasterext AS d ON b.ItemID = d.productid
             WHERE 1=1 {filters}
-            GROUP BY b.docid, a.invno
-            ORDER BY a.invdate DESC {limitQ};
+            ORDER BY a.invdate a.invno DESC {limitQ};
         """
         # print(query)
 
@@ -1443,9 +1442,10 @@ class WoJobListAPIView(APIView):
             )
 
         query = """
-            SELECT a.Docid, b.Description, b.AccCode, b.IPrefix
+            SELECT a.Docid, b.Description, b.AccCode, b.IPrefix,c.UnitName,a.Rateunit,a.Quantity,a.Rate,a.Amount
             FROM item_pi_detail as a
             JOIN item_fpmasterext as b ON a.ItemID = b.ProductID
+            JOIN item_unit_master as c ON a.UnitID = c.UnitID
             WHERE a.Docid = %s;
         """
 
