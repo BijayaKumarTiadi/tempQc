@@ -1259,7 +1259,7 @@ class WoListAPIView(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'txt_woid': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Work Order ID (partial match)'),
+                'txt_docid': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Work Order ID (partial match)'),
                 'txt_miscodeNo': openapi.Schema(type=openapi.TYPE_STRING, description='Search by MIS Code Number (partial match)'),
                 'txt_productName': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Product Name (partial match)'),
                 'txt_ClientCode': openapi.Schema(type=openapi.TYPE_STRING, description='Search by Client Code (partial match)'),
@@ -1313,9 +1313,9 @@ class WoListAPIView(APIView):
         icompanyid = user.icompanyid
 
         # Apply filters based on request data
-        woid = data.get('txt_woid', None)
-        if woid:
-            filters += f" AND a.woid LIKE '%{woid}%'"
+        docid = data.get('txt_docid', None)
+        if docid:
+            filters += f" AND a.docid LIKE '%{docid}%'"
 
         miscodeNo = data.get('txt_miscodeNo', None)
         if miscodeNo:
@@ -1349,12 +1349,13 @@ class WoListAPIView(APIView):
         query = f"""
             SELECT a.docid, MAX(date_format(a.invdate, '%d/%m/%Y')) AS invdate, a.invno, Get_CompanyName(a.ClientId) AS CompanyName
             FROM item_pi_master AS a
-            JOIN item_pi_detail AS b ON a.docid = b.woid
-            JOIN item_fpmasterext AS d ON b.ItemID = d.ProductID
+            JOIN item_pi_detail AS b ON a.docid = b.docid
+            JOIN item_fpmasterext AS d ON b.ItemID = d.productid
             WHERE 1=1 {filters}
-            GROUP BY b.woid, a.invno
+            GROUP BY b.docid, a.invno
             ORDER BY a.invdate DESC {limitQ};
         """
+        # print(query)
 
         try:
             with connection.cursor() as cursor:
@@ -1435,18 +1436,20 @@ class WoJobListAPIView(APIView):
     def post(self, request, format=None):
         docid = request.data.get('docid', None)
         
-        if not woid:
+        if not docid:
             return Response(
-                {"error": True, "message": "woid parameter is required"},
+                {"error": True, "message": "docid parameter is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         query = """
-            SELECT a.WOId, a.JobNo, b.Description, b.AccCode, b.IPrefix
-            FROM item_wodetail as a
+            SELECT a.Docid, b.Description, b.AccCode, b.IPrefix
+            FROM item_pi_detail as a
             JOIN item_fpmasterext as b ON a.ItemID = b.ProductID
-            WHERE a.woid = %s;
+            WHERE a.Docid = %s;
         """
+
+        # print(query)
 
         try:
             with connection.cursor() as cursor:
