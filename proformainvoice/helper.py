@@ -37,8 +37,8 @@ def __gen_pdf__(data):
         pdf = FPDF('P', 'mm', 'Letter')
         pdf.set_auto_page_break(auto=True, margin=10)
         pdf.add_page()
-        image_path = os.path.join(settings.MEDIA_ROOT, 'proformainvoice/ssimage.jpg')
         # pdf.image("D:\\UpWork\\RenukaSoftec\\SmartMIS-Backend\\media\\proformainvoice\\ssimage.jpg", 10, 8, 15)
+        image_path = os.path.join(settings.MEDIA_ROOT, 'proformainvoice/ssimage.jpg')
         image_path = os.path.join(settings.MEDIA_ROOT, 'proformainvoice/ssimage.jpg')
         pdf.image(image_path, 10, 8, 15)
         pdf.set_font('helvetica', 'B', 20)
@@ -125,7 +125,7 @@ def __gen_pdf__(data):
 
         for i in range(1, 5):
             pdf.ln()
-            # pdf.cell(10, str(i), border=True)
+            pdf.cell(10, i, border=True)
             pdf.cell(66, 5, itemname, border=True)
             pdf.cell(44, 5, classname, border=True)
             pdf.cell(26, 5, quantity, border=True)
@@ -168,7 +168,7 @@ def __gen_pdf__(data):
         pdf.rect(10, 171, 200, 90)
 
         # pdf_buffer = BytesIO()
-        # pdf.output(pdf_buffer)
+        # pdf.output("pdf_buffer.pdf")
         # pdf_buffer.seek(0)
         pdf_buffer = BytesIO()
         pdf_data = pdf.output(dest='S').encode('latin1')
