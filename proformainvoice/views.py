@@ -1237,6 +1237,149 @@ class WOCreateView(APIView):
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(series_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    @swagger_auto_schema(
+        operation_summary="Update Work Order",
+        operation_description="Update Work Order and related records.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties = {
+                'pi_master_data': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'docno': openapi.Schema(type=openapi.TYPE_STRING, description='Doc No Number', example='SSGI/PFI/23-24/10'),
+                        'invno': openapi.Schema(type=openapi.TYPE_STRING, description='Invoice Number', max_length=10, example='INV123'),
+                        'invdate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Invoice Date', example='2023-07-01T12:00:00Z'),
+                        'pono': openapi.Schema(type=openapi.TYPE_STRING, description='PO Number', max_length=30, example='PO123'),
+                        'podate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='PO Date', example='2023-07-01T12:00:00Z'),
+                        'clientid': openapi.Schema(type=openapi.TYPE_STRING, description='Client ID', max_length=10, example='CLIENT123'),
+                        'execid': openapi.Schema(type=openapi.TYPE_STRING, description='Exec ID', max_length=20, example='EXEC123'),
+                        'orderedby': openapi.Schema(type=openapi.TYPE_STRING, description='Ordered By', max_length=45, example='John Doe'),
+                        'shipvia': openapi.Schema(type=openapi.TYPE_STRING, description='Ship Via', max_length=50, example='Courier'),
+                        'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', max_length=100, example='Some remarks'),
+                        'deliveryaddressid': openapi.Schema(type=openapi.TYPE_STRING, description='Delivery Address ID', max_length=10, example='ADDR123'),
+                        'deliveryaddress': openapi.Schema(type=openapi.TYPE_STRING, description='Delivery Address', max_length=100, example='123 Main St'),
+                        'taxid': openapi.Schema(type=openapi.TYPE_INTEGER, description='Tax ID', example=1),
+                        'terms': openapi.Schema(type=openapi.TYPE_STRING, description='Terms', max_length=100, example='Net 30'),
+                        'basicamount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Basic Amount', example=1000.0),
+                        'freight': openapi.Schema(type=openapi.TYPE_NUMBER, description='Freight', example=50.0),
+                        'insurance': openapi.Schema(type=openapi.TYPE_NUMBER, description='Insurance', example=25.0),
+                        'totalamt': openapi.Schema(type=openapi.TYPE_NUMBER, description='Total Amount', example=1075.0),
+                        'seriesid': openapi.Schema(type=openapi.TYPE_STRING, description='Series ID', max_length=10, example='SERIES123')
+                    },
+                    required=['podate', 'clientid']
+                ),
+                'pi_detail_data': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'rowno': openapi.Schema(type=openapi.TYPE_INTEGER, description='Row Number', example=1),
+                            'itemid': openapi.Schema(type=openapi.TYPE_STRING, description='Item ID', max_length=10, example='ITEM123'),
+                            'itemcode': openapi.Schema(type=openapi.TYPE_STRING, description='Item Code', max_length=40, example='ITEMCODE123'),
+                            'codeno': openapi.Schema(type=openapi.TYPE_STRING, description='Code Number', max_length=45, example='CODE123'),
+                            'itemdesc': openapi.Schema(type=openapi.TYPE_STRING, description='Item Description', max_length=1000, example='Item Description'),
+                            'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description='Quantity', example=100),
+                            'percentvar': openapi.Schema(type=openapi.TYPE_NUMBER, description='Percent Variation', example=2.5),
+                            'qtyplus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Plus', example=10),
+                            'qtyminus': openapi.Schema(type=openapi.TYPE_NUMBER, description='Quantity Minus', example=5),
+                            'unitid': openapi.Schema(type=openapi.TYPE_STRING, description='Unit ID', max_length=10, example='UNIT123'),
+                            'rate': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate', example=10.5),
+                            'rateunit': openapi.Schema(type=openapi.TYPE_STRING, description='Rate Unit', max_length=10, example='INR / USD'),
+                            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Amount', example=1050.75),
+                            'freight': openapi.Schema(type=openapi.TYPE_NUMBER, description='Freight', example=0.0),
+                            'insurance': openapi.Schema(type=openapi.TYPE_NUMBER, description='Insurance', example=0.0),
+                            'specification': openapi.Schema(type=openapi.TYPE_STRING, description='Specification', max_length=10, example='SPEC123'),
+                            'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='Remarks', max_length=1000, example='Some remarks'),
+                            'hold': openapi.Schema(type=openapi.TYPE_INTEGER, description='Hold', example=0),
+                            'clstatus': openapi.Schema(type=openapi.TYPE_INTEGER, description='CL Status', example=0),
+                            'approved': openapi.Schema(type=openapi.TYPE_NUMBER, description='Approved', example=1.0),
+                            'approvedby': openapi.Schema(type=openapi.TYPE_STRING, description='Approved By', max_length=45, example='Manager'),
+                            'approvaldate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Approval Date', example='2023-07-01T12:00:00Z'),
+                            'invoiceqty': openapi.Schema(type=openapi.TYPE_NUMBER, description='Invoice Quantity', example=100.0),
+                            'constatus': openapi.Schema(type=openapi.TYPE_STRING, description='Con Status', max_length=200, example='Confirmed'),
+                            'lastupdatedon': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Last Updated On', example='2023-07-01T12:00:00Z'),
+                            'templateid': openapi.Schema(type=openapi.TYPE_STRING, description='Template ID', max_length=20, example='TEMPLATE123'),
+                            'rateinthousand': openapi.Schema(type=openapi.TYPE_NUMBER, description='Rate in Thousand', example=10000.0),
+                            'extra1': openapi.Schema(type=openapi.TYPE_STRING, description='Extra1', max_length=100, example='Extra1'),
+                            'extra2': openapi.Schema(type=openapi.TYPE_STRING, description='Extra2', max_length=100, example='Extra2'),
+                            'extra3': openapi.Schema(type=openapi.TYPE_STRING, description='Extra3', max_length=100, example='Extra3'),
+                            'extra4': openapi.Schema(type=openapi.TYPE_STRING, description='Extra4', max_length=100, example='Extra4'),
+                            'extra5': openapi.Schema(type=openapi.TYPE_STRING, description='Extra5', max_length=100, example='Extra5'),
+                            'closedate': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME, description='Close Date', example='2023-07-01T12:00:00Z'),
+                            'closeby': openapi.Schema(type=openapi.TYPE_STRING, description='Close By', max_length=10, example='Admin'),
+                            'closereason': openapi.Schema(type=openapi.TYPE_STRING, description='Close Reason', max_length=250, example='Completion'),
+                            'orderqty': openapi.Schema(type=openapi.TYPE_INTEGER, description='Order Quantity', example=100)
+                        },
+                        required=['rowno', 'itemid', 'quantity', 'rate', 'amount']
+                    )
+                )
+            },
+            required=['wo_master_data', 'wo_detail_data']
+        ),
+        responses={
+            200: openapi.Response(
+                description='Data updated successfully',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                        'updated_woid': openapi.Schema(type=openapi.TYPE_STRING, description='Updated Work Order ID')
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+            401: openapi.Response(description='Unauthorized'),
+            404: openapi.Response(description='Not found'),
+            500: openapi.Response(description='Internal server error')
+        },
+        tags=['Proforma Invoice / Workorder']
+    )
+    
+    def put(self, request):
+        data = request.data
+        _ =data['pi_master_data']
+        docid = _.get("docno")
+        icompanyid = request.user.icompanyid
+
+        try:
+            with transaction.atomic():
+                # Update or create the master record
+                master_instance = ItemPiMaster.objects.get(docid=docid, icompanyid=icompanyid)
+                master_serializer = ItemPiMasterSerializer(master_instance, data=data['pi_master_data'], partial=True)
+                if master_serializer.is_valid():
+                    master_serializer.save()
+                else:
+                    raise ValidationError(master_serializer.errors)
+
+                # Update or create detail records
+                for detail in data['pi_detail_data']:
+                    detail_instance = ItemPiDetail.objects.get(icompanyid=icompanyid, docid=master_instance.docid, rowno=detail['rowno'])
+                    detail_serializer = ItemPiDetailSerializer(detail_instance, data=detail, partial=True)
+                    if detail_serializer.is_valid():
+                        detail_serializer.save()
+                    else:
+                        raise ValidationError(detail_serializer.errors)
+
+            return Response({'message': 'Data updated successfully', 'updated_woid': master_instance.docid}, status=status.HTTP_200_OK)
+        
+        except ItemPiMaster.DoesNotExist:
+            return Response({'error': 'Master record not found'}, status=status.HTTP_404_NOT_FOUND)
+        except ItemPiDetail.DoesNotExist:
+            return Response({'error': 'Detail record not found'}, status=status.HTTP_404_NOT_FOUND)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class WoListAPIView(APIView):
