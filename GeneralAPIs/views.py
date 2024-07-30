@@ -9,7 +9,8 @@ from mastersapp.models import (
     ItemClass,
     ItemFpmasterext,
     ItemUnitMaster,
-    ProductCategoryMaster
+    ProductCategoryMaster,
+    ItemGroupMaster,
 )
 from .serializers import (
     CompanySerializer,
@@ -17,7 +18,8 @@ from .serializers import (
     ItemClassSerializer,
     ItemFpmasterQualitySerializer,
     UnitMasterSerializer,
-    ProductCategorySerializer
+    ProductCategorySerializer,
+    ItemGroupSerializer,
 )
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -109,6 +111,13 @@ class DropDownView(APIView):
                     },
                     required=['IsActive']
                 ),
+                'GroupMaster': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'GroupID': openapi.Schema(type=openapi.TYPE_STRING, description="Group ID filteration if required"),
+                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive)")
+                    },
+                ),
             },
             required=[],
             example={
@@ -132,7 +141,12 @@ class DropDownView(APIView):
                 },
                 "UnitMaster": {
                     "IsActive": 1
+                },
+                "GroupMaster": {
+                    "GroupID": "",
+                    "IsActive": 1
                 }
+                
             }
         ),
         responses={
@@ -247,6 +261,25 @@ class DropDownView(APIView):
                 units = ItemUnitMaster.objects.filter(**unitmaster_filter).order_by('unitname')
                 units_results = UnitMasterSerializer(units, many=True).data
                 response_data["data"]['UnitMasterList'] = units_results
+
+
+            if 'GroupMaster' in data:
+                groupmaster_data = data['GroupMaster']
+                groupmaster_filter = {}
+                
+                # Check if 'groupid' exists and is not empty within 'GroupMaster'
+                if 'GroupID' in groupmaster_data and groupmaster_data['GroupID']:
+                    groupmaster_filter['groupid'] = groupmaster_data['GroupID']
+
+                isactive = groupmaster_data.get('IsActive',1) # default when key not present
+                if isactive == 0:
+                    groupmaster_filter['isactive'] = 0
+                elif isactive == 1:
+                    groupmaster_filter['isactive'] = 1
+                groups = ItemGroupMaster.objects.filter(**groupmaster_filter).order_by('groupname')
+                groups_results = ItemGroupSerializer(groups, many=True).data
+                response_data["data"]['GroupMasterList'] = groups_results
+
 
             return Response(response_data, status=status.HTTP_200_OK)
 

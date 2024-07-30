@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'stockallocation',
     'proformainvoice',
     'generalapis',
+    'productspecification',
 
 ]
 

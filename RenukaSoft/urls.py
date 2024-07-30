@@ -55,6 +55,7 @@ urlpatterns = [
     path("api/v1/sa",include('stockallocation.urls')),
     path("api/v1/pi",include('proformainvoice.urls')),
 
+    path("api/v1/ps/",include('productspecification.urls')),
 
 
     

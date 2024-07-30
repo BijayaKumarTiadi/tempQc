@@ -224,7 +224,7 @@ class ItemUnitMaster(models.Model):
 
 
 class ItemGroupMaster(models.Model):
-    groupid = models.CharField(db_column='GroupID', max_length=10)  
+    groupid = models.CharField(db_column='GroupID', max_length=10, primary_key= True)  
     groupname = models.CharField(db_column='GroupName', max_length=50, blank=True, null=True)  
     isactive = models.PositiveIntegerField(db_column='IsActive')  
     h = models.PositiveIntegerField(db_column='H')  
@@ -543,3 +543,4 @@ class ItemPiMaster(models.Model):
         managed = False
         db_table = 'item_pi_master'
         unique_together = (('invid', 'docid', 'docnotion'),)
+

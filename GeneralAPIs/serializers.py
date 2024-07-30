@@ -12,7 +12,7 @@ from mastersapp.models import ItemClass
 from mastersapp.models import ItemFpmasterext
 from mastersapp.models import ItemUnitMaster
 from mastersapp.models import ProductCategoryMaster
-
+from mastersapp.models import ItemGroupMaster
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -44,3 +44,8 @@ class ProductCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductCategoryMaster
         fields = ['pcategoryid', 'particular']
+
+class ItemGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemGroupMaster
+        fields = ['groupid', 'groupname']
