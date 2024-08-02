@@ -26,7 +26,9 @@ from .models import (
     Windowpatchtype,
     Foilmaster,
     ItemEmbosetypeMaster,
-    Flutemaster
+    Flutemaster,
+    ItemMachinenames,
+    ItemProcessname,
 )
 
 from .serializers import (
@@ -37,6 +39,7 @@ from .serializers import (
     FoilTypeSerializer,
     ItemEmbosetypeMasterSerializer,
     FlutemasterSerializer,
+    MachineProcessSerializer,
 )
 
 
@@ -61,6 +64,100 @@ from rest_framework import serializers
 # Custom imports
 from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
+from django.db.models import F
+
+
+PRID_MAPPING = {
+    'paperBoardMachine': 'PCut',
+    'printingMachine': 'Pr',
+    'coatingMachine': 'FC',
+    'LamAndMetMachine': 'FL',
+    'windowMachine': 'WP',
+    'foldingFoilingMachine': 'FF',
+    'embossingMachine': 'EM',
+    'punchingSheetChkMachine': 'SC',
+    'sealPastMachine': 'Pa',
+    'corrMachineE': 'FM',
+    'CorrSheetPastMachineB': 'FP',
+    'packingMachine': 'PACK',
+    'otherProcessMachine': 'otherProcessMachine'
+}
+
+class MachineList(APIView):
+    """
+    This API is used in Product Specification Process,
+    Api is Process wise,
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve machine list based on process.",
+        operation_description="response providing as per PRID_MAPPING list of processes",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        },
+        tags=['Product Specification (FP History Web)']
+    )
+    
+
+    def get(self, request, *args, **kwargs):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        response_data = {}
+
+        try:
+            with connection.cursor() as cursor:
+                for machine_process_name, prid in PRID_MAPPING.items():
+                    cursor.execute("""
+                        SELECT 
+                            a.MachineID, a.RecID, a.MachineName, b.PrID, b.PrName, b.Description 
+                        FROM 
+                            item_machinenames a 
+                        JOIN 
+                            item_processname b 
+                        ON 
+                            a.BasePrUniqueID = b.BasePrUniqueID 
+                        WHERE 
+                            b.PrID=%s AND a.InUse='1' AND a.icompanyid=%s
+                        """, [prid, '00001'])
+                    rows = cursor.fetchall()
+
+                    if rows:
+                        response_data[machine_process_name] = [
+                            {
+                                'machineid': row[0],
+                                'recid': row[1],
+                                'machinename': row[2],
+                                'prid': row[3],
+                                'prname': row[4],
+                                'description': row[5]
+                            } for row in rows
+                        ]
+                    else:
+                        response_data[machine_process_name] = []
+
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    
 
 
 class PageLoadAPI(APIView):
@@ -223,6 +320,21 @@ class PageLoadAPI(APIView):
 
         if dropdown_response.status_code == status.HTTP_200_OK:
             dropdown_data = dropdown_response.data
+
+
+            # # Fetching Machine List data
+            # try:
+            #     machine_list_view = MachineList()
+            #     machine_list_response = machine_list_view.get(request)
+                
+            #     if machine_list_response.status_code == status.HTTP_200_OK:
+            #         machine_list_data = machine_list_response.data
+            #         dropdown_data.update(machine_list_data)
+            #     else:
+            #         return Response({"error in MachineList": machine_list_response.data}, status=machine_list_response.status_code)
+
+            # except Exception as e:
+            #     return Response({"error in MachineList": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Fetching job complexity data
             try:

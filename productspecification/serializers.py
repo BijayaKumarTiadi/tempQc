@@ -7,6 +7,8 @@ from .models import Windowpatchtype
 from .models import Foilmaster
 from .models import ItemEmbosetypeMaster
 from .models import Flutemaster
+from .models import ItemMachinenames
+from .models import ItemProcessname
 
 class JobComplexitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -42,3 +44,19 @@ class FlutemasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Flutemaster
         fields = ['corrfluteid', 'flutetype']
+
+# class MachineProcessSerializer(serializers.Serializer):
+#     machineid = serializers.CharField(max_length=10)
+#     recid = serializers.IntegerField()
+#     machinename = serializers.CharField(max_length=45)
+#     prid = serializers.CharField(max_length=10)
+#     prname = serializers.CharField(max_length=45)
+#     description = serializers.CharField(max_length=45)
+
+class MachineProcessSerializer(serializers.Serializer):
+    machineid = serializers.CharField(max_length=10)
+    recid = serializers.IntegerField()
+    machinename = serializers.CharField(max_length=45)
+    annotated_prid = serializers.CharField(max_length=10)  # Updated field name
+    prname = serializers.CharField(max_length=45)
+    description = serializers.CharField(max_length=45)

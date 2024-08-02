@@ -117,3 +117,70 @@ class Flutemaster(models.Model):
     class Meta:
         managed = False
         db_table = 'flutemaster'
+
+class ItemMachinenames(models.Model):
+    machineid = models.CharField(db_column='MachineID', max_length=10)
+    machinename = models.CharField(db_column='MachineName', max_length=45)
+    prid = models.CharField(db_column='PrID', max_length=10)
+    processname = models.CharField(db_column='ProcessName', max_length=200)
+    basepruniqueid = models.IntegerField(db_column='BasePrUniqueID')
+    perhrruncost = models.FloatField(db_column='PerHrRunCost')
+    powercharges = models.FloatField(db_column='Powercharges')
+    labourcharges = models.FloatField()
+    interestamt = models.FloatField(db_column='interestAmt')
+    depriamt = models.FloatField()
+    avgspeed = models.FloatField()
+    avgsetuptime = models.FloatField()
+    avgwastage = models.FloatField()
+    rentpm = models.FloatField()
+    maintainpm = models.FloatField()
+    consumblepm = models.FloatField()
+    capacityperday = models.FloatField(db_column='CapacityPerDay', blank=True, null=True)
+    inuse = models.IntegerField(db_column='InUse', blank=True, null=True)
+    recid = models.AutoField(db_column='Recid', primary_key=True)
+    machineno_internal = models.CharField(db_column='MachineNo_Internal', max_length=20, blank=True, null=True)
+    makereadycostnr = models.IntegerField(db_column='MakeReadyCostNr', blank=True, null=True)
+    productioncostnr = models.IntegerField(db_column='ProductionCostNr', blank=True, null=True)
+    makereadycostuv = models.IntegerField(db_column='MakeReadyCostUV', blank=True, null=True)
+    productioncostuv = models.IntegerField(db_column='ProductionCostUV', blank=True, null=True)
+    directmanpowcost = models.IntegerField(db_column='DirectManpowCost', blank=True, null=True)
+    supportmanpowcost = models.IntegerField(db_column='SupportManpowCost', blank=True, null=True)
+    admindepmanpowcost = models.IntegerField(db_column='AdminDepManpowCost', blank=True, null=True)
+    pile_height = models.SmallIntegerField()
+    pile_weight_limit = models.SmallIntegerField()
+    pile_load_time = models.IntegerField()
+    speedunit = models.CharField(db_column='SpeedUnit', max_length=10, blank=True, null=True)
+    icompanyid = models.CharField(max_length=10)
+    arrangeseqno = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'item_machinenames'
+
+class ItemProcessname(models.Model):
+    prid = models.CharField(db_column='PrID', unique=True, max_length=50)
+    prname = models.CharField(db_column='PrName', max_length=45)
+    description = models.CharField(db_column='Description', max_length=45)
+    unitid = models.CharField(db_column='UnitID', max_length=20)
+    isactive = models.PositiveIntegerField(db_column='IsActive')
+    level = models.FloatField(db_column='Level')
+    narration = models.CharField(max_length=200)
+    inputuom = models.CharField(db_column='InputUOM', max_length=10)
+    outputuom = models.CharField(db_column='OutPutUOM', max_length=10)
+    prodvalidation = models.PositiveIntegerField(db_column='ProdValidation')
+    displayinlistbox = models.FloatField(db_column='DisplayInListBox')
+    basepruniqueid = models.IntegerField(db_column='BasePrUniqueID')
+    basetablename = models.CharField(db_column='BaseTableName', max_length=200)
+    canbeonline = models.FloatField(db_column='CanBeOnLine')
+    formno = models.CharField(db_column='FormNo', max_length=100)
+    donebycontractor = models.IntegerField(db_column='DonebyContractor')
+    mrwastage = models.FloatField(db_column='MrWastage')
+    processwastage = models.FloatField(db_column='ProcessWastage')
+    wastagein = models.CharField(db_column='WastageIn', max_length=10)
+    id = models.AutoField(db_column='ID', primary_key=True)
+    tseqno = models.IntegerField(db_column='Tseqno')
+
+    class Meta:
+        managed = False
+        db_table = 'item_processname'
+        unique_together = (('id', 'prid'),)
