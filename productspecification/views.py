@@ -10,6 +10,8 @@ from mastersapp.models import (
     ItemFpmasterext,
     ItemUnitMaster,
     ProductCategoryMaster,
+    ItemMaster,
+    ItemDimension,
 )
 from generalapis.serializers import (
     CompanySerializer,
@@ -60,106 +62,13 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import connection, connections, DatabaseError
 from django.db import transaction
 from rest_framework import serializers
+from django.db.models import F, OuterRef, Subquery, FloatField, CharField, IntegerField, Value
 
 # Custom imports
 from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
 from django.db.models import F
-
-
-PRID_MAPPING = {
-    'paperBoardMachine': 'PCut',
-    'printingMachine': 'Pr',
-    'coatingMachine': 'FC',
-    'LamAndMetMachine': 'FL',
-    'windowMachine': 'WP',
-    'foldingFoilingMachine': 'FF',
-    'embossingMachine': 'EM',
-    'punchingSheetChkMachine': 'SC',
-    'sealPastMachine': 'Pa',
-    'corrMachineE': 'FM',
-    'CorrSheetPastMachineB': 'FP',
-    'packingMachine': 'PACK',
-    'otherProcessMachine': 'otherProcessMachine'
-}
-
-class MachineList(APIView):
-    """
-    This API is used in Product Specification Process,
-    Api is Process wise,
-    """
-
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
-
-    @swagger_auto_schema(
-        operation_summary="Retrieve machine list based on process.",
-        operation_description="response providing as per PRID_MAPPING list of processes",
-        manual_parameters=[
-            openapi.Parameter(
-                name='Authorization',
-                in_=openapi.IN_HEADER,
-                type=openapi.TYPE_STRING,
-                description='Bearer token',
-                required=True,
-                format='Bearer <Token>'
-            )
-        ],
-        responses={
-            200: "Success",
-            401: "Unauthorized",
-            500: "Internal server error"
-        },
-        tags=['Product Specification (FP History Web)']
-    )
     
-
-    def get(self, request, *args, **kwargs):
-        user = GetUserData.get_user(request)
-        icompanyid = user.icompanyid
-        if icompanyid is None:
-            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        response_data = {}
-
-        try:
-            with connection.cursor() as cursor:
-                for machine_process_name, prid in PRID_MAPPING.items():
-                    cursor.execute("""
-                        SELECT 
-                            a.MachineID, a.RecID, a.MachineName, b.PrID, b.PrName, b.Description 
-                        FROM 
-                            item_machinenames a 
-                        JOIN 
-                            item_processname b 
-                        ON 
-                            a.BasePrUniqueID = b.BasePrUniqueID 
-                        WHERE 
-                            b.PrID=%s AND a.InUse='1' AND a.icompanyid=%s
-                        """, [prid, '00001'])
-                    rows = cursor.fetchall()
-
-                    if rows:
-                        response_data[machine_process_name] = [
-                            {
-                                'machineid': row[0],
-                                'recid': row[1],
-                                'machinename': row[2],
-                                'prid': row[3],
-                                'prname': row[4],
-                                'description': row[5]
-                            } for row in rows
-                        ]
-                    else:
-                        response_data[machine_process_name] = []
-
-            return Response(response_data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    
-
-
 class PageLoadAPI(APIView):
     """
         This API is used for product specification (FP History Web) Page Load API
@@ -442,3 +351,212 @@ class PageLoadAPI(APIView):
             return Response(dropdown_data, status=status.HTTP_200_OK)
         else:
             return Response(dropdown_response.data, status=dropdown_response.status_code)
+
+PRID_MAPPING = {
+    'paperBoardMachine': 'PCut',
+    'printingMachine': 'Pr',
+    'coatingMachine': 'FC',
+    'LamAndMetMachine': 'FL',
+    'windowMachine': 'WP',
+    'foldingFoilingMachine': 'FF',
+    'embossingMachine': 'EM',
+    'punchingSheetChkMachine': 'SC',
+    'sealPastMachine': 'Pa',
+    'corrMachineE': 'FM',
+    'CorrSheetPastMachineB': 'FP',
+    'packingMachine': 'PACK',
+    'otherProcessMachine': 'otherProcessMachine'
+}
+
+class MachineList(APIView):
+    """
+    This API is used in Product Specification Process,
+    Api is Process wise,
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve machine list based on process.",
+        operation_description="response providing as per PRID_MAPPING list of processes",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        },
+        tags=['Product Specification (FP History Web)']
+    )
+    
+
+    def get(self, request, *args, **kwargs):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        response_data = {}
+
+        try:
+            with connection.cursor() as cursor:
+                for machine_process_name, prid in PRID_MAPPING.items():
+                    cursor.execute("""
+                        SELECT 
+                            a.MachineID, a.RecID, a.MachineName, b.PrID, b.PrName, b.Description 
+                        FROM 
+                            item_machinenames a 
+                        JOIN 
+                            item_processname b 
+                        ON 
+                            a.BasePrUniqueID = b.BasePrUniqueID 
+                        WHERE 
+                            b.PrID=%s AND a.InUse='1' AND a.icompanyid=%s
+                        """, [prid, '00001'])
+                    rows = cursor.fetchall()
+
+                    if rows:
+                        response_data[machine_process_name] = [
+                            {
+                                'machineid': row[0],
+                                'recid': row[1],
+                                'machinename': row[2],
+                                'prid': row[3],
+                                'prname': row[4],
+                                'description': row[5]
+                            } for row in rows
+                        ]
+                    else:
+                        response_data[machine_process_name] = []
+
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+
+
+class GetRawMaterial(APIView):
+    """
+    This API Class provides raw material data for product specifications form.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="ProductSpecification Page Load API",
+        operation_description="API is working as per front end post request",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'GroupID': openapi.Schema(type=openapi.TYPE_STRING, description="Group ID"),
+                'ValueLike': openapi.Schema(type=openapi.TYPE_STRING, description="Item name partial match"),
+                'isactive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
+            },
+            required=['GroupID', 'ValueLike', 'isactive'],
+            example={
+                "GroupID": "00001",
+                "ValueLike": "Pearl",
+                "isactive": 1
+            }
+        ),
+        responses={
+            200: "Request was successful",
+            400: "Invalid request",
+            500: "Internal server error"
+        },
+        tags=['Product Specification (FP History Web)']
+    )
+    def post(self, request):
+        user = GetUserData.get_user(request)
+        PIcompanyID = user.icompanyid
+
+        PGroupID = request.data.get('GroupID')
+        PValueLike = request.data.get('ValueLike', '')
+        isactive = request.data.get('isactive', 1)
+
+        if not PGroupID or not PIcompanyID:
+            return Response({"error": "GroupID and ValueLike are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        PKind = PValueLike.replace(' ', '')
+
+        try:
+            items = []
+
+            filter_conditions = {
+                'groupid': PGroupID,
+                'description__icontains': PKind
+            }
+
+            if isactive != 2:
+                filter_conditions['isactive'] = isactive
+
+            subquery_length = Subquery(
+                ItemDimension.objects.filter(itemid=OuterRef('itemid')).values('length')[:1],
+                output_field=FloatField()
+            )
+            subquery_breadth = Subquery(
+                ItemDimension.objects.filter(itemid=OuterRef('itemid')).values('breadth')[:1],
+                output_field=FloatField()
+            )
+            subquery_thickness = Subquery(
+                ItemDimension.objects.filter(itemid=OuterRef('itemid')).values('thickness')[:1],
+                output_field=FloatField()
+            )
+
+            if PGroupID == '00001':  # Board
+                items = ItemMaster.objects.filter(
+                    **filter_conditions,
+                    itemid__in=ItemDimension.objects.values_list('itemid', flat=True)
+                ).annotate(
+                    Deckle=subquery_length / 10,
+                    Grain=subquery_breadth / 10,
+                    gsm=subquery_thickness
+                ).values(
+                    'itemid', 'description', 'iprefix', 'quality', 'manufacturer', 'groupid', 'Deckle', 'Grain', 'gsm'
+                )
+
+            elif PGroupID in ('00101', '00005', '00102'):  # paperroll, board roll
+                items = ItemMaster.objects.filter(
+                    **filter_conditions,
+                    groupid__in=['00005', '00101'],
+                    itemid__in=ItemDimension.objects.values_list('itemid', flat=True)
+                ).annotate(
+                    Deckle=subquery_length / 10,
+                    gsm=0
+                ).values(
+                    'itemid', 'description', 'iprefix', 'quality', 'manufacturer', 'groupid', 'Deckle', 'gsm'
+                )
+
+            else:
+                items = ItemMaster.objects.filter(
+                    **filter_conditions
+                ).values(
+                    'itemid', 'description', 'iprefix', 'groupid'
+                )
+
+            results = list(items)
+
+            return Response(results, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

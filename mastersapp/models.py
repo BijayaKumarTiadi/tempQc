@@ -544,3 +544,65 @@ class ItemPiMaster(models.Model):
         db_table = 'item_pi_master'
         unique_together = (('invid', 'docid', 'docnotion'),)
 
+class ItemMaster(models.Model):
+    itemid = models.CharField(db_column='ItemId', primary_key=True, max_length=10)
+    groupid = models.CharField(db_column='GroupID', max_length=10)
+    description = models.CharField(db_column='Description', max_length=500)
+    manufacturer = models.CharField(db_column='Manufacturer', max_length=50)
+    quality = models.CharField(db_column='Quality', max_length=50)
+    purchaserate = models.FloatField(db_column='PurchaseRate')
+    uom = models.CharField(db_column='UOM', max_length=10)
+    packingunit = models.CharField(db_column='PackingUnit', max_length=200)
+    packaging = models.CharField(db_column='Packaging', max_length=10)
+    rol = models.FloatField(db_column='ROL')
+    roq = models.FloatField(db_column='ROQ')
+    mql = models.FloatField(db_column='MQL')
+    openingstock = models.FloatField(db_column='OpeningStock')
+    openingstockvalue = models.FloatField(db_column='OpeningStockValue')
+    closingstock = models.FloatField(db_column='ClosingStock')
+    lastpurchaseqty = models.FloatField(db_column='LastPurchaseQty')
+    lastpurchaserate = models.FloatField(db_column='LastPurchaseRate')
+    avgpurchaserate = models.FloatField(db_column='AvgPurchaseRate')
+    lastpurchasedate = models.DateTimeField(db_column='LastPurchaseDate')
+    valuationmethod = models.CharField(db_column='ValuationMethod', max_length=20)
+    isactive = models.PositiveIntegerField(db_column='IsActive')
+    remarks = models.CharField(db_column='Remarks', max_length=100)
+    stdrate = models.FloatField(db_column='StdRate')
+    type = models.CharField(db_column='Type', max_length=2)
+    icompanyid = models.CharField(db_column='ICompanyID', max_length=10)
+    packdetails = models.CharField(db_column='PackDetails', max_length=200)
+    uid = models.CharField(db_column='UID', max_length=10)
+    modvat = models.PositiveIntegerField(db_column='ModVat')
+    iprefix = models.CharField(db_column='IPrefix', max_length=200)
+    qc = models.PositiveIntegerField(db_column='QC')
+    itemcategory = models.CharField(db_column='ItemCategory', max_length=5)
+    acccode = models.CharField(db_column='AccCode', max_length=45)
+    createdby = models.CharField(db_column='CreatedBy', max_length=20)
+    cdatetime = models.CharField(db_column='CDateTime', max_length=30)
+    muid = models.CharField(db_column='MUID', max_length=20)
+    mdatetime = models.CharField(db_column='MdateTime', max_length=45)
+    isautodesc = models.IntegerField(db_column='IsAutoDesc')
+    machine_id = models.CharField(db_column='Machine_ID', max_length=10)
+    prid = models.CharField(db_column='PrID', max_length=10)
+    classid = models.CharField(db_column='Classid', max_length=10)
+    costtype = models.IntegerField()
+    subgroupid = models.IntegerField(db_column='SubGroupID')
+    issueagainstid = models.CharField(db_column='ISSUEAGAINSTID', max_length=20)
+    groupname = models.CharField(max_length=100)
+    subgroupname = models.CharField(db_column='Subgroupname', max_length=100)
+    description_alias = models.CharField(db_column='Description_Alias', max_length=100)
+    autoitemcoderm = models.IntegerField(db_column='AUTOITEMCODERM')
+
+    class Meta:
+        managed = False
+        db_table = 'item_master'
+
+class ItemDimension(models.Model):
+    itemid = models.CharField(db_column='ItemID', primary_key=True, max_length=10)
+    length = models.CharField(db_column='Length', max_length=300)
+    breadth = models.CharField(db_column='Breadth', max_length=300)
+    thickness = models.CharField(db_column='Thickness', max_length=300)
+
+    class Meta:
+        managed = False
+        db_table = 'item_dimension'
