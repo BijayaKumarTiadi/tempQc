@@ -143,7 +143,7 @@ def get_general_dropdown(dropdown_name):
     
 # Page Load API...
     
-class PageLoadAPI(APIView):
+class ProductDetail_PageLoad(APIView):
     """
         This API is used for product specification (FP History Web) Page Load API
     """
@@ -211,41 +211,7 @@ class PageLoadAPI(APIView):
                     },
                     required=['IsActive']
                 ),
-                'GroupMaster': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'groupid': openapi.Schema(type=openapi.TYPE_STRING, description="Group ID filteration if required"),
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                ),
-                'CoatingMaster': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
-                'WindowPatchingType': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
-                'EmbossType': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
-                'FluteType': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
+                
             },
             required=[],
             example={
@@ -270,18 +236,6 @@ class PageLoadAPI(APIView):
                 "UnitMaster": {
                     "IsActive": 1
                 },
-                # "CoatingMaster": {
-                #     "IsActive": 1
-                # },
-                # "WindowPatchingType": {
-                #     "IsActive": 1
-                # },
-                # "EmbossType": {
-                #     "IsActive": 1
-                # },
-                # "FluteType": {
-                #     "IsActive": 1
-                # }
             }
         ),
         responses={
@@ -545,7 +499,7 @@ class WindowPatchingProcess(APIView):
 
         return Response(response_wp, status=status.HTTP_200_OK)
     
-class ProcessAllData(APIView):
+class OurSpecification_PageLoad(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
