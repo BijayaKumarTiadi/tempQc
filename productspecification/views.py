@@ -12,6 +12,7 @@ from mastersapp.models import (
     ProductCategoryMaster,
     ItemMaster,
     ItemDimension,
+    ItemGroupMaster,
 )
 from generalapis.serializers import (
     CompanySerializer,
@@ -31,6 +32,8 @@ from .models import (
     Flutemaster,
     ItemMachinenames,
     ItemProcessname,
+    GeneralDropdown,
+    Lammetpetmaster,
 )
 
 from .serializers import (
@@ -42,6 +45,9 @@ from .serializers import (
     ItemEmbosetypeMasterSerializer,
     FlutemasterSerializer,
     MachineProcessSerializer,
+    ItemGroupSerializer,
+    GeneralDropdownSerializer,
+    LammetpetmasterSerializer,
 )
 
 
@@ -68,6 +74,74 @@ from django.db.models import F, OuterRef, Subquery, FloatField, CharField, Integ
 from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
 from django.db.models import F
+
+
+# Machine Data...
+def get_machine_process_data(prid, icompanyid):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT 
+                a.MachineID, a.RecID, a.MachineName, b.PrID, b.PrName, b.Description 
+            FROM 
+                item_machinenames a 
+            JOIN 
+                item_processname b 
+            ON 
+                a.BasePrUniqueID = b.BasePrUniqueID 
+            WHERE 
+                b.PrID=%s AND a.InUse='1' AND a.icompanyid=%s
+            """, [prid, icompanyid])
+        rows = cursor.fetchall()
+        
+    results = [
+        {
+            'MachineID': row[0],
+            'RecID': row[1],
+            'MachineName': row[2],
+            'PrID': row[3],
+            'PrName': row[4],
+            'Description': row[5]
+        } 
+        for row in rows
+    ]
+
+    return results
+
+
+# Group Data...
+def get_group_data(group_ids):
+    # If the input is a single ID (not a comma-separated string), treat it as a list with one element
+    if isinstance(group_ids, str) and ',' not in group_ids:
+        group_id_list = [group_ids]
+    else:
+        # Split the comma-separated string into a list of group IDs or use it directly if it's already a list
+        group_id_list = group_ids.split(',') if isinstance(group_ids, str) else group_ids
+    
+    # Retrieve group data for each group ID
+    item_groups = ItemGroupMaster.objects.filter(groupid__in=group_id_list, isactive=1)
+    serializer = ItemGroupSerializer(item_groups, many=True)
+    return serializer.data
+
+# Job Complexity...
+def get_complexity(pr_id,Active):
+    try:
+        job_complexity_data = EstJobcomplexity.objects.filter(prid=pr_id,isactive=Active)
+        job_complexity_serializer = JobComplexitySerializer(job_complexity_data, many=True)
+        return  job_complexity_serializer.data
+    except Exception as e:
+        return {"error in Job Complexity": str(e)}
+    
+# General Dropdown...
+def get_general_dropdown(dropdown_name):
+    try:
+        dropdown_data = GeneralDropdown.objects.filter(dropdownname=dropdown_name, isactive=1)
+        dropdown_serializer = GeneralDropdownSerializer(dropdown_data, many=True)
+        # print(dropdown_serializer.data)
+        return dropdown_serializer.data
+    except Exception as e:
+        return {"error in General Dropdown": str(e)}
+    
+# Page Load API...
     
 class PageLoadAPI(APIView):
     """
@@ -196,22 +270,18 @@ class PageLoadAPI(APIView):
                 "UnitMaster": {
                     "IsActive": 1
                 },
-                "GroupMaster": {
-                    "groupid": "",
-                    "IsActive": 1
-                },
-                "CoatingMaster": {
-                    "IsActive": 1
-                },
-                "WindowPatchingType": {
-                    "IsActive": 1
-                },
-                "EmbossType": {
-                    "IsActive": 1
-                },
-                "FluteType": {
-                    "IsActive": 1
-                }
+                # "CoatingMaster": {
+                #     "IsActive": 1
+                # },
+                # "WindowPatchingType": {
+                #     "IsActive": 1
+                # },
+                # "EmbossType": {
+                #     "IsActive": 1
+                # },
+                # "FluteType": {
+                #     "IsActive": 1
+                # }
             }
         ),
         responses={
@@ -228,158 +298,104 @@ class PageLoadAPI(APIView):
         dropdown_response = dropdown_view.post(request)
 
         if dropdown_response.status_code == status.HTTP_200_OK:
-            dropdown_data = dropdown_response.data
-
-
-            # # Fetching Machine List data
-            # try:
-            #     machine_list_view = MachineList()
-            #     machine_list_response = machine_list_view.get(request)
-                
-            #     if machine_list_response.status_code == status.HTTP_200_OK:
-            #         machine_list_data = machine_list_response.data
-            #         dropdown_data.update(machine_list_data)
-            #     else:
-            #         return Response({"error in MachineList": machine_list_response.data}, status=machine_list_response.status_code)
-
-            # except Exception as e:
-            #     return Response({"error in MachineList": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Fetching job complexity data
-            try:
-                job_complexity_data = EstJobcomplexity.objects.all()
-                job_complexity_serializer = JobComplexitySerializer(job_complexity_data, many=True)
-                dropdown_data['JobComplexity'] = job_complexity_serializer.data
-            except Exception as e:
-                return Response({"error in Job Complexity": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Fetching PTurnType data using raw SQL query
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute("SELECT ID, PTurnType, IsActive FROM FP_PTURNTYPE WHERE IsActive='1' ORDER BY PTurnType DESC;")
-                    pturntype_data = cursor.fetchall()
-
-                    # Adding raw data to the response
-                    dropdown_data['PTurnType'] = [
-                        {'ID': row[0], 'PTurnType': row[1], 'IsActive': row[2]} for row in pturntype_data
-                    ]
-            except Exception as e:
-                return Response({"error in PTurnType": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Fetching CoatingMaster data
-            try:
-                data = request.data
-                if 'CoatingMaster' in data:
-                    coatingmaster_data = data['CoatingMaster']
-                    coating_filter = {}
-                    isactive = coatingmaster_data.get('IsActive', None)
-                    if isactive in [0, 1]:
-                        coating_filter['isactive'] = isactive
-                    coating_data = CoatingMaster.objects.filter(**coating_filter)
-                    coating_serializer = CoatingMasterSerializer(coating_data, many=True)
-                    dropdown_data['CoatingMaster'] = coating_serializer.data
-                
-            except Exception as e:
-                return Response({"error in CoatingMaster": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            # Fetching Lamination Type
-            try:
-                lamination_data = Lammaster.objects.all()
-                lamination_serializer = LammasterSerializer(lamination_data, many=True)
-                dropdown_data['LaminationType'] = lamination_serializer.data
-                
-            except Exception as e:
-                return Response({"error in LaminationType": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            # Fetching Window Patching Type
-            try:
-                if 'WindowPatchingType' in data:
-                    windowpatching_data = data['WindowPatchingType']
-                    windowpatching_filter = {}
-                    isactive = windowpatching_data.get('IsActive', None)
-                    if isactive in [0, 1]:
-                        windowpatching_filter['isactive'] = isactive
-                    windowpatching_data = Windowpatchtype.objects.filter(**windowpatching_filter)
-                    windowpatching_serializer = WindowpatchtypeSerializer(windowpatching_data, many=True)
-                    dropdown_data['WindowPatchingType'] = windowpatching_serializer.data
-                
-            except Exception as e:
-                return Response({"error in WindowPatchingType": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            # Fetching Foil Type,
-            try:
-                foil_data = Foilmaster.objects.all()
-                foil_serializer = FoilTypeSerializer(foil_data, many=True)
-                dropdown_data['FoilType'] = foil_serializer.data
-                
-            except Exception as e:
-                return Response({"error in FoilType": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            # Fetching Embose Type,
-            try:
-                data = request.data
-                if 'EmbossType' in data:
-                    emboss_data = data['EmbossType']
-                    emboss_filter = {}
-                    isactive = emboss_data.get('IsActive', None)
-                    if isactive in [0, 1]:
-                        emboss_filter['isactive'] = isactive
-                    emboss_data = ItemEmbosetypeMaster.objects.filter(**emboss_filter)
-                    emboss_serializer = ItemEmbosetypeMasterSerializer(emboss_data, many=True)
-                    dropdown_data['EmbossType'] = emboss_serializer.data
-                
-            except Exception as e:
-                return Response({"error in EmbossType": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            # Fetching Flute Type,
-            try:
-                data = request.data
-                if 'FluteType' in data:
-                    flute_data = data['FluteType']
-                    flute_filter = {}
-                    isactive = flute_data.get('IsActive', None)
-                    if isactive in [0, 1]:
-                        flute_filter['isactive'] = isactive
-                    flute_data = Flutemaster.objects.filter(**flute_filter)
-                    flute_serializer = FlutemasterSerializer(flute_data, many=True)
-                    dropdown_data['FluteType'] = flute_serializer.data
-                
-            except Exception as e:
-                return Response({"error in FluteType": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+            """ Oue Specification Code Merger"""
 
-            return Response(dropdown_data, status=status.HTTP_200_OK)
+            # PaperBoard Process Data..
+            class_pbp = PaperBoard()
+            resp_pbp = class_pbp.get(request)
+            paper_board_data = resp_pbp.data
+
+            # Printing Process data..
+            class_printing = PrintingProcess()
+            response_printing = class_printing.get(request)
+            printing_data = response_printing.data
+
+            # Coating Process data..
+            class_coating = CoatingProcess()
+            response_coating = class_coating.get(request)
+            coating_data = response_coating.data
+
+            # Lamination Process data..
+            class_lamination = LaminationProcess()
+            response_lamination = class_lamination.get(request)
+            lamination_data = response_lamination.data
+
+            # MetPet Lamination data..
+            class_metpet_lamination = MetPetLaminationProcess()
+            response_metpet_lamination = class_metpet_lamination.get(request)
+            metpet_lamination_data = response_metpet_lamination.data
+
+            # Window Patching Process data..
+            class_window_patching = WindowPatchingProcess()
+            response_window_patching = class_window_patching.get(request)
+            window_patching_data = response_window_patching.data
+
+            response_data = {
+                "ProductDetails": dropdown_response.data,
+                "PaperBoard": paper_board_data,
+                "Printing": printing_data,
+                "Coating": coating_data,
+                "Lamination": lamination_data,
+                "MetPetLamination": metpet_lamination_data,
+                "WindowPatching": window_patching_data,
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
         else:
             return Response(dropdown_response.data, status=dropdown_response.status_code)
 
-PRID_MAPPING = {
-    'paperBoardMachine': 'PCut',
-    'printingMachine': 'Pr',
-    'coatingMachine': 'FC',
-    'LamAndMetMachine': 'FL',
-    'windowMachine': 'WP',
-    'foldingFoilingMachine': 'FF',
-    'embossingMachine': 'EM',
-    'punchingSheetChkMachine': 'SC',
-    'sealPastMachine': 'Pa',
-    'corrMachineE': 'FM',
-    'CorrSheetPastMachineB': 'FP',
-    'packingMachine': 'PACK',
-    'otherProcessMachine': 'otherProcessMachine'
-}
 
-class MachineList(APIView):
-    """
-    This API is used in Product Specification Process,
-    Api is Process wise,
-    """
-
+class PaperBoard(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
-        operation_summary="Retrieve machine list based on process.",
-        operation_description="response providing as per PRID_MAPPING list of processes",
+        operation_summary="Retrieve all process required data",
+        operation_description="response in resting Mode",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        },
+        tags=['Product Specification (FP History Web)']
+    )
+
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_pbp = {}
+
+        machinelist = get_machine_process_data('PCut', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+
+        response_pbp['machines'] = machine_data.data
+
+        group_string = '00001,00101,00005,00102'
+        response_pbp['groups'] = get_group_data(group_string)
+
+        return Response(response_pbp, status=status.HTTP_200_OK)
+    
+class PrintingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve printing process required data",
+        operation_description="response in testing Mode",
         manual_parameters=[
             openapi.Parameter(
                 name='Authorization',
@@ -398,54 +414,252 @@ class MachineList(APIView):
         tags=['Product Specification (FP History Web)']
     )
     
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_pp = {}
+        machinelist = get_machine_process_data('Pr', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_pp['machines'] = machine_data.data
+        response_pp['JobComplexity'] = get_complexity('Pr',1)
+        
+        # Fetching PTurnType data using raw SQL query
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT ID, PTurnType, IsActive FROM FP_PTURNTYPE WHERE IsActive='1' ORDER BY PTurnType DESC;")
+                pturntype_data = cursor.fetchall()
 
-    def get(self, request, *args, **kwargs):
+                # Adding raw data to the response
+                response_pp['PTurnType'] = [
+                    {'ID': row[0], 'PTurnType': row[1], 'IsActive': row[2]} for row in pturntype_data
+                ]
+        except Exception as e:
+            # return Response({"error in PTurnType": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response_pp['PTurnType'] = {"error in PTurnType": str(e)}
+
+        response_pp['PrintingType'] = get_general_dropdown('PrintingType')
+        response_pp['FrontBack'] = get_general_dropdown('FrontBack')
+        group_string = '00002,00109'
+        response_pp['groups'] = get_group_data(group_string)
+
+        return Response(response_pp, status=status.HTTP_200_OK)
+    
+class CoatingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_cp = {}
+
+        # Fetching CoatingMaster data
+        try:
+            coating_filter = {'isactive__in': [0, 1]}
+            coating_data = CoatingMaster.objects.filter(**coating_filter)
+            coating_serializer = CoatingMasterSerializer(coating_data, many=True)
+            response_cp['CoatingType'] = coating_serializer.data
+
+        except Exception as e:
+            response_cp['CoatingType'] = {"error in CoatingMaster(Coating Type)": str(e)}
+
+        group_string = '00156'
+        response_cp['groups'] = get_group_data(group_string)
+
+        # Coating Machines
+        machinelist = get_machine_process_data('FC', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_cp['machines'] = machine_data.data
+
+        response_cp['Kind'] = get_general_dropdown('CoatingKind')
+        response_cp['FrontBack'] = get_general_dropdown('CoatingFrontBack')
+        response_cp['JobComplexity'] = get_complexity('FC',1)
+
+        return Response(response_cp, status=status.HTTP_200_OK)
+
+class LaminationProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_lp = {}
+
+        # Fetching Lamination Type
+        try:
+            lamination_data = Lammaster.objects.all()
+            lamination_serializer = LammasterSerializer(lamination_data, many=True)
+            response_lp['LaminationType'] = lamination_serializer.data
+
+        except Exception as e:
+            response_lp['LaminationType'] = {"error in LaminationType": str(e)}
+
+        group_string = '00006,00003'
+        response_lp['groups'] = get_group_data(group_string)
+        response_lp['TypeOfLamination'] = get_general_dropdown('LaminationType')
+        response_lp['FrontBack'] = get_general_dropdown('LaminationFrontBack')
+
+        # Lamination machines
+        machinelist = get_machine_process_data('FL', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_lp['machines'] = machine_data.data
+        response_lp['JobComplexity'] = get_complexity('FL',1)
+
+        return Response(response_lp, status=status.HTTP_200_OK)
+    
+class MetPetLaminationProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_mplp = {}
+        # Fetching Metal Pet Lamination Type
+        try:
+            metpet_lamination_data = Lammetpetmaster.objects.all()
+            metpet_lamination_serializer = LammetpetmasterSerializer(metpet_lamination_data, many=True)
+
+            response_mplp['MetPetLaminationType'] = metpet_lamination_serializer.data
+        except Exception as e:
+            response_mplp['MetPetLaminationType'] = {"error in MetPetLaminationType": str(e)}
+
+        # Lamination machines
+        machinelist = get_machine_process_data('FL', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_mplp['machines'] = machine_data.data
+        group_string = '00006,00003'
+        response_mplp['groups'] = get_group_data(group_string)
+        response_mplp['Kind'] = get_general_dropdown('MetPetKind')
+        response_mplp['FrontBack'] = get_general_dropdown('LaminationFrontBack')
+        response_mplp['JobComplexity'] = get_complexity('FL',1)
+        
+        return Response(response_mplp, status=status.HTTP_200_OK)
+    
+class WindowPatchingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_wp = {}
+        
+        # Fetching Window Patching Type
+        """
+        try:
+            data = request.data
+            if 'WindowPatchingType' in data:
+                windowpatching_data = data['WindowPatchingType']
+                windowpatching_filter = {}
+                isactive = windowpatching_data.get('IsActive', None)
+                if isactive in [0, 1]:
+                    windowpatching_filter['isactive'] = isactive
+                windowpatching_data = Windowpatchtype.objects.filter(**windowpatching_filter)
+                windowpatching_serializer = WindowpatchtypeSerializer(windowpatching_data, many=True)
+                response_wp['WindowPatchingType'] = windowpatching_serializer.data
+                
+        except Exception as e:
+            response_wp['WindowPatchingType'] = {"error in WindowPatchingType": str(e)}
+        """
+        # Fetching Window Patching Group
+        group_string = '00051,00003'
+        response_wp['groups'] = get_group_data(group_string)
+
+        # Fetching Window Patching Machine
+        machinelist = get_machine_process_data('WP', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_wp['machines'] = machine_data.data
+        response_wp['Unit'] = get_general_dropdown('WPUnit')
+        response_wp['JobComplexity'] = get_complexity('WP',1)
+
+        return Response(response_wp, status=status.HTTP_200_OK)
+    
+class ProcessAllData(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve all process required data",
+        operation_description="response in resting Mode",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        responses={
+            200: "Success",
+            401: "Unauthorized",
+            500: "Internal server error"
+        },
+        tags=['Product Specification (FP History Web)']
+    )
+
+    def get(self, request):
         user = GetUserData.get_user(request)
         icompanyid = user.icompanyid
         if icompanyid is None:
             return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        response_data = {}
+        # PaperBoard Process Data..
+        class_pbp = PaperBoard()
+        resp_pbp = class_pbp.get(request)
+        paper_board_data = resp_pbp.data
 
-        try:
-            with connection.cursor() as cursor:
-                for machine_process_name, prid in PRID_MAPPING.items():
-                    cursor.execute("""
-                        SELECT 
-                            a.MachineID, a.RecID, a.MachineName, b.PrID, b.PrName, b.Description 
-                        FROM 
-                            item_machinenames a 
-                        JOIN 
-                            item_processname b 
-                        ON 
-                            a.BasePrUniqueID = b.BasePrUniqueID 
-                        WHERE 
-                            b.PrID=%s AND a.InUse='1' AND a.icompanyid=%s
-                        """, [prid, '00001'])
-                    rows = cursor.fetchall()
+        # Printing Process data..
+        class_printing = PrintingProcess()
+        response_printing = class_printing.get(request)
+        printing_data = response_printing.data
 
-                    if rows:
-                        response_data[machine_process_name] = [
-                            {
-                                'machineid': row[0],
-                                'recid': row[1],
-                                'machinename': row[2],
-                                'prid': row[3],
-                                'prname': row[4],
-                                'description': row[5]
-                            } for row in rows
-                        ]
-                    else:
-                        response_data[machine_process_name] = []
+        # Coating Process data..
+        class_coating = CoatingProcess()
+        response_coating = class_coating.get(request)
+        coating_data = response_coating.data
 
-            return Response(response_data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+        # Lamination Process data..
+        class_lamination = LaminationProcess()
+        response_lamination = class_lamination.get(request)
+        lamination_data = response_lamination.data
 
+        # MetPet Lamination data..
+        class_metpet_lamination = MetPetLaminationProcess()
+        response_metpet_lamination = class_metpet_lamination.get(request)
+        metpet_lamination_data = response_metpet_lamination.data
 
+        # Window Patching Process data..
+        class_window_patching = WindowPatchingProcess()
+        response_window_patching = class_window_patching.get(request)
+        window_patching_data = response_window_patching.data
+
+        response_data = {
+            "PaperBoard": paper_board_data,
+            "Printing": printing_data,
+            "Coating": coating_data,
+            "Lamination": lamination_data,
+            "MetPetLamination": metpet_lamination_data,
+            "WindowPatching": window_patching_data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
+# Get Raw Material For Our Specifications tab.
 class GetRawMaterial(APIView):
     """
     This API Class provides raw material data for product specifications form.

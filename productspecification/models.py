@@ -184,3 +184,25 @@ class ItemProcessname(models.Model):
         managed = False
         db_table = 'item_processname'
         unique_together = (('id', 'prid'),)
+
+class GeneralDropdown(models.Model):
+    autoid = models.AutoField(db_column='AutoId', primary_key=True)
+    dropdownname = models.CharField(db_column='DropDownName', max_length=50)
+    option = models.CharField(db_column='Option', max_length=50)
+    value = models.CharField(db_column='Value', max_length=50)
+    isactive = models.IntegerField(db_column='IsActive')
+
+    class Meta:
+        managed = False
+        db_table = 'general_dropdown'
+
+class Lammetpetmaster(models.Model):
+    lamid = models.CharField(db_column='LamID', primary_key=True, max_length=10)
+    filmtype = models.CharField(db_column='FilmType', max_length=50, blank=True, null=True)
+    micron = models.SmallIntegerField(db_column='Micron', blank=True, null=True)
+    gravity = models.FloatField(db_column='Gravity', blank=True, null=True)
+    remarks = models.CharField(db_column='Remarks', max_length=300)
+
+    class Meta:
+        managed = False
+        db_table = 'lammetpetmaster'

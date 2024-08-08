@@ -9,6 +9,10 @@ from .models import ItemEmbosetypeMaster
 from .models import Flutemaster
 from .models import ItemMachinenames
 from .models import ItemProcessname
+from mastersapp.models import ItemGroupMaster
+from .models import GeneralDropdown
+from .models import Lammetpetmaster
+
 
 class JobComplexitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,18 +49,31 @@ class FlutemasterSerializer(serializers.ModelSerializer):
         model = Flutemaster
         fields = ['corrfluteid', 'flutetype']
 
-# class MachineProcessSerializer(serializers.Serializer):
-#     machineid = serializers.CharField(max_length=10)
-#     recid = serializers.IntegerField()
-#     machinename = serializers.CharField(max_length=45)
-#     prid = serializers.CharField(max_length=10)
-#     prname = serializers.CharField(max_length=45)
-#     description = serializers.CharField(max_length=45)
-
 class MachineProcessSerializer(serializers.Serializer):
-    machineid = serializers.CharField(max_length=10)
-    recid = serializers.IntegerField()
-    machinename = serializers.CharField(max_length=45)
-    annotated_prid = serializers.CharField(max_length=10)  # Updated field name
-    prname = serializers.CharField(max_length=45)
-    description = serializers.CharField(max_length=45)
+    MachineID = serializers.IntegerField()
+    RecID = serializers.IntegerField()
+    MachineName = serializers.CharField(max_length=255)
+    PrID = serializers.CharField()
+    PrName = serializers.CharField(max_length=255)
+    Description = serializers.CharField(max_length=255)
+
+class ItemGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemGroupMaster
+        fields = ['groupid', 'groupname']
+
+class GeneralDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GeneralDropdown
+        fields = ['option','value']
+        # fields = '__all__'
+
+class LammetpetmasterSerializer(serializers.ModelSerializer):
+    film_micron = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Lammetpetmaster
+        fields = ['lamid', 'film_micron']
+
+    def get_film_micron(self, obj):
+        return f"{obj.filmtype} - {obj.micron}"
