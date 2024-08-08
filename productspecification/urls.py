@@ -1,9 +1,8 @@
 from django.urls import path
-from .views import ProductDetail_PageLoad,GetRawMaterial,OurSpecification_PageLoad,PaperBoard
+from .views import ProductDetail,GetRawMaterial,OurSpecification,PaperBoard
 
 urlpatterns = [
-    path('product-details/', ProductDetail_PageLoad.as_view(), name='product-details-api'),
-    path('get-raw-material/', GetRawMaterial.as_view(), name='get_raw_material'),
-    path('our-specification/', OurSpecification_PageLoad.as_view(), name='process-all-data'),
-    path('paperboard/', PaperBoard.as_view(), name='paperboard'),
+    path('product-details/', ProductDetail.as_view(), name='product-details-api'),
+    path('our-specification/', OurSpecification.as_view(), name='our_specification-api'),
+    path('get-raw-material/', GetRawMaterial.as_view(), name='get-raw-material-api'),
 ]

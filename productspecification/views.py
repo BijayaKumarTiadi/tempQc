@@ -34,6 +34,8 @@ from .models import (
     ItemProcessname,
     GeneralDropdown,
     Lammetpetmaster,
+    Pastingmaster,
+    Extracostmaster,
 )
 
 from .serializers import (
@@ -48,6 +50,8 @@ from .serializers import (
     ItemGroupSerializer,
     GeneralDropdownSerializer,
     LammetpetmasterSerializer,
+    PastingmasterSerializer,
+    ExtracostmasterSerializer,
 )
 
 
@@ -74,6 +78,33 @@ from django.db.models import F, OuterRef, Subquery, FloatField, CharField, Integ
 from .permissions import ViewByStaffOnlyPermission
 from accounts.helpers import GetUserData
 from django.db.models import F
+
+    
+# Page Load API...
+class ProductDetail(APIView):
+    """
+        This API is used for product specification (FP History Web) Page Load API
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+
+    def post(self, request):
+        # DropDownView instance from generalapis app,
+        dropdown_view = DropDownView()
+        dropdown_response = dropdown_view.post(request)
+        drp = {}
+
+        if dropdown_response.status_code == status.HTTP_200_OK:
+
+            dropdown_data = dropdown_response.data
+            dropdown_data.update({
+                'JobType': get_general_dropdown('JobType'),
+                'NewRepeat': get_general_dropdown('NewRepeat')
+            })
+            
+            return Response(dropdown_data, status=status.HTTP_200_OK)
+        else:
+            return Response(dropdown_response.data, status=dropdown_response.status_code)
 
 
 # Machine Data...
@@ -107,7 +138,6 @@ def get_machine_process_data(prid, icompanyid):
 
     return results
 
-
 # Group Data...
 def get_group_data(group_ids):
     # If the input is a single ID (not a comma-separated string), treat it as a list with one element
@@ -140,150 +170,10 @@ def get_general_dropdown(dropdown_name):
         return dropdown_serializer.data
     except Exception as e:
         return {"error in General Dropdown": str(e)}
-    
-# Page Load API...
-    
-class ProductDetail_PageLoad(APIView):
-    """
-        This API is used for product specification (FP History Web) Page Load API
-    """
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
-
-    @swagger_auto_schema(
-        operation_summary="ProductSpecification Page Load API",
-        operation_description="API is working as per front end post request",
-        manual_parameters=[
-            openapi.Parameter(
-                name='Authorization',
-                in_=openapi.IN_HEADER,
-                type=openapi.TYPE_STRING,
-                description='Bearer token',
-                required=True,
-                format='Bearer <Token>'
-            )
-        ],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'clientmaster': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'companyid': openapi.Schema(type=openapi.TYPE_STRING, description="Company ID"),
-                        'CompanyNameLike': openapi.Schema(type=openapi.TYPE_STRING, description="Company name partial match"),
-                        'isactive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['companyid', 'isactive']
-                ),
-                'EmployeeMaster': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'Dept': openapi.Schema(type=openapi.TYPE_STRING, description="Department name"),
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['Dept', 'IsActive']
-                ),
-                'ProductClass': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
-                'ProductKind': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
-                'ProductCategory': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
-                'UnitMaster': openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
-                    },
-                    required=['IsActive']
-                ),
-                
-            },
-            required=[],
-            example={
-                "clientmaster": {
-                    "companyid": "00102",
-                    "CompanyNameLike": "",
-                    "isactive": 1
-                },
-                "EmployeeMaster": {
-                    "Dept": "Marketing",
-                    "IsActive": 0
-                },
-                "ProductClass": {
-                    "IsActive": 2
-                },
-                "ProductKind": {
-                    "IsActive": 1
-                },
-                "ProductCategory": {
-                    "IsActive": 1
-                },
-                "UnitMaster": {
-                    "IsActive": 1
-                },
-            }
-        ),
-        responses={
-            200: "Request was successful",
-            400: "Invalid request",
-            500: "Internal server error"
-        },
-        tags=['Product Specification (FP History Web)']
-    )
-
-    def post(self, request):
-        # DropDownView instance from generalapis app,
-        dropdown_view = DropDownView()
-        dropdown_response = dropdown_view.post(request)
-
-        if dropdown_response.status_code == status.HTTP_200_OK:
-
-            dropdown_data = dropdown_response.data
-            
-            return Response(dropdown_data, status=status.HTTP_200_OK)
-        else:
-            return Response(dropdown_response.data, status=dropdown_response.status_code)
-
 
 class PaperBoard(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
-
-    @swagger_auto_schema(
-        operation_summary="Retrieve all process required data",
-        operation_description="response in resting Mode",
-        manual_parameters=[
-            openapi.Parameter(
-                name='Authorization',
-                in_=openapi.IN_HEADER,
-                type=openapi.TYPE_STRING,
-                description='Bearer token',
-                required=True,
-                format='Bearer <Token>'
-            )
-        ],
-        responses={
-            200: "Success",
-            401: "Unauthorized",
-            500: "Internal server error"
-        },
-        tags=['Product Specification (FP History Web)']
-    )
 
     def get(self, request):
         user = GetUserData.get_user(request)
@@ -305,27 +195,6 @@ class PaperBoard(APIView):
 class PrintingProcess(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
-
-    @swagger_auto_schema(
-        operation_summary="Retrieve printing process required data",
-        operation_description="response in testing Mode",
-        manual_parameters=[
-            openapi.Parameter(
-                name='Authorization',
-                in_=openapi.IN_HEADER,
-                type=openapi.TYPE_STRING,
-                description='Bearer token',
-                required=True,
-                format='Bearer <Token>'
-            )
-        ],
-        responses={
-            200: "Success",
-            401: "Unauthorized",
-            500: "Internal server error"
-        },
-        tags=['Product Specification (FP History Web)']
-    )
     
     def get(self, request):
         user = GetUserData.get_user(request)
@@ -470,22 +339,15 @@ class WindowPatchingProcess(APIView):
         response_wp = {}
         
         # Fetching Window Patching Type
-        """
+        
         try:
-            data = request.data
-            if 'WindowPatchingType' in data:
-                windowpatching_data = data['WindowPatchingType']
-                windowpatching_filter = {}
-                isactive = windowpatching_data.get('IsActive', None)
-                if isactive in [0, 1]:
-                    windowpatching_filter['isactive'] = isactive
-                windowpatching_data = Windowpatchtype.objects.filter(**windowpatching_filter)
-                windowpatching_serializer = WindowpatchtypeSerializer(windowpatching_data, many=True)
-                response_wp['WindowPatchingType'] = windowpatching_serializer.data
+            windowpatching_data = Windowpatchtype.objects.filter(isactive=1)
+            windowpatching_serializer = WindowpatchtypeSerializer(windowpatching_data, many=True)
+            response_wp['WindowPatchingType'] = windowpatching_serializer.data
                 
         except Exception as e:
             response_wp['WindowPatchingType'] = {"error in WindowPatchingType": str(e)}
-        """
+        
         # Fetching Window Patching Group
         group_string = '00051,00003'
         response_wp['groups'] = get_group_data(group_string)
@@ -499,13 +361,286 @@ class WindowPatchingProcess(APIView):
 
         return Response(response_wp, status=status.HTTP_200_OK)
     
-class OurSpecification_PageLoad(APIView):
+class FoilingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_fp = {}
+        
+        # Fetching Foiling Type
+        try:
+            foiling_data = Foilmaster.objects.all()
+            foiling_serializer = FoilTypeSerializer(foiling_data, many=True)
+            response_fp['FoilingType'] = foiling_serializer.data
+                
+        except Exception as e:
+            response_fp['FoilingType'] = {"error in FoilingType": str(e)}
+        
+        # Fetching Foiling Group
+        group_string = '00007'
+        response_fp['groups'] = get_group_data(group_string)
+
+        # Fetching Machines
+        machinelist = get_machine_process_data('FF', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_fp['machines'] = machine_data.data
+        response_fp['JobComplexity'] = get_complexity('FF',1)
+
+        return Response(response_fp, status=status.HTTP_200_OK)
+    
+class EmbossingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_ep = {}
+        
+        # Fetching Embossing Type
+        try:
+            embossing_data = ItemEmbosetypeMaster.objects.filter(isactive=1)
+            embossing_serializer = ItemEmbosetypeMasterSerializer(embossing_data, many=True)
+            response_ep['EmbossingType'] = embossing_serializer.data
+                
+        except Exception as e:
+            response_ep['EmbossingType'] = {"error in EmbossingType": str(e)}
+        
+        # Fetching Embossing Group
+        group_string = '00008'
+        response_ep['groups'] = get_group_data(group_string)
+
+        # Fetching Machines
+        machinelist = get_machine_process_data('EM', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_ep['machines'] = machine_data.data
+        response_ep['JobComplexity'] = get_complexity('EM',1)
+
+        return Response(response_ep, status=status.HTTP_200_OK)
+    
+class PunchingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_pp = {}
+        
+        # Fetching Machine
+        machinelist = get_machine_process_data('SC', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_pp['machines'] = machine_data.data
+        response_pp['JobComplexity'] = get_complexity('SC',1)
+        return Response(response_pp, status=status.HTTP_200_OK)
+    
+class FinishCuttingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_fc = {}
+        
+        # Fetching Machine
+        response_fc['JobComplexity'] = get_complexity('FC',1)
+        return Response(response_fc, status=status.HTTP_200_OK)
+
+class SealingPastingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_sp = {}
+        
+        response_sp['Type'] = get_general_dropdown('SealingPastingType')
+        response_sp['MachineManual'] = get_general_dropdown('SealingPastingMnM')
+        # Fetching Embossing Group
+        group_string = '00003'
+        response_sp['groups'] = get_group_data(group_string)
+
+        # Pasting type
+        try:
+            pasting_data = Pastingmaster.objects.filter(inuse=1)
+            pasting_serializer = PastingmasterSerializer(pasting_data, many=True)
+            response_sp['PastingType'] = pasting_serializer.data
+                
+        except Exception as e:
+            response_sp['PastingType'] = {"error in PastingType": str(e)}
+
+        # Fetching Machine
+        machinelist = get_machine_process_data('Pa', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_sp['machines'] = machine_data.data
+        response_sp['JobComplexity'] = get_complexity('Pa',1)
+
+        return Response(response_sp, status=status.HTTP_200_OK)
+
+class FoldingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_fp = {}
+        
+        # Fetching Machine
+        machinelist = get_machine_process_data('FF', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_fp['machines'] = machine_data.data
+        response_fp['JobComplexity'] = get_complexity('FF',1)
+
+        return Response(response_fp, status=status.HTTP_200_OK)
+
+class CorrugationProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_cp = {}
+        
+        # Fetching Machine
+        machinelist = get_machine_process_data('FM', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_cp['machines'] = machine_data.data
+        response_cp['JobComplexity'] = get_complexity('FM',1)
+
+        # Fetch group information
+        group_string = '00001,00101,00034,00102'
+        response_cp['groups'] = get_group_data(group_string)
+
+        # Fetching Flute Type
+        try:
+            flute_data = Flutemaster.objects.filter(isactive=1)
+            flute_serializer = FlutemasterSerializer(flute_data, many=True)
+            response_cp['FluteType'] = flute_serializer.data
+                
+        except Exception as e:
+            response_cp['FluteType'] = {"error in FluteType": str(e)}
+
+
+        return Response(response_cp, status=status.HTTP_200_OK)
+
+class CorrugationSheetPastingAdhesive(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_cs_pa = {}
+
+        response_cs_pa['CorrSheetPasting'] = get_general_dropdown('CorrSheetPasting')
+        response_cs_pa['Kind'] = get_general_dropdown('CorrSheetPastingKind')
+        return Response(response_cs_pa, status=status.HTTP_200_OK)
+    
+class PackingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_pp = {}
+        
+        # Fetching Machine
+        machinelist = get_machine_process_data('PACK', icompanyid)
+        machine_data = MachineProcessSerializer(machinelist, many=True)
+        response_pp['machines'] = machine_data.data
+        # Fetching groups
+        group_string = '00154'
+        response_pp['groups'] = get_group_data(group_string)
+        response_pp['PolyLinning'] = get_general_dropdown('PolyLinning')
+        response_pp['Strapping'] = get_general_dropdown('Strapping')
+        return Response(response_pp, status=status.HTTP_200_OK)
+
+class otherProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_op = {}
+        
+        # Fetching OtherProcess ProcessType
+        try:
+            other_process_data = Extracostmaster.objects.filter(isactive=1)
+            other_process_serializer = ExtracostmasterSerializer(other_process_data, many=True)
+            response_op['Process'] = other_process_serializer.data
+                
+        except Exception as e:
+            response_op['Process'] = {"error in other process Type": str(e)}
+
+        response_op['groups'] = "Group dont know talk to ritesh sir"
+        return Response(response_op, status=status.HTTP_200_OK)
+
+class SortingProcess(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_sp = {}
+        
+        # Fetching Machine 
+        response_sp['Process'] = get_general_dropdown('SortingProcess')
+        return Response(response_sp, status=status.HTTP_200_OK)
+    
+class SheetChecking(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
+    
+    def get(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        response_sc = {}
+        
+        response_sc['Process'] = get_general_dropdown('SheetCheckProcess')
+        return Response(response_sc, status=status.HTTP_200_OK)
+
+
+class OurSpecification(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
-        operation_summary="Retrieve all process required data",
-        operation_description="response in resting Mode",
+        operation_summary="Retrival of all required data of our specification tab ( Page Load API) ",
+        operation_description="In this Get API request we are sending all page load data related to page load",
         manual_parameters=[
             openapi.Parameter(
                 name='Authorization',
@@ -560,6 +695,68 @@ class OurSpecification_PageLoad(APIView):
         response_window_patching = class_window_patching.get(request)
         window_patching_data = response_window_patching.data
 
+        # Foiling Process data..
+        class_foiling = FoilingProcess()
+        response_foiling = class_foiling.get(request)
+        foiling_data = response_foiling.data
+
+        # Embossing Process data..
+        class_embossing = EmbossingProcess()
+        response_embossing = class_embossing.get(request)
+        embossing_data = response_embossing.data
+
+        # Punching Process data..
+        class_punching = PunchingProcess()
+        response_punching = class_punching.get(request)
+        punching_data = response_punching.data
+
+        # Finish Cutting Process data..
+        class_finish_cutting = FinishCuttingProcess()
+        response_finish_cutting = class_finish_cutting.get(request)
+        finish_cutting_data = response_finish_cutting.data
+
+        # Sealing Pasting Process data..
+        class_sealing_pasting = SealingPastingProcess()
+        response_sealing_pasting = class_sealing_pasting.get(request)
+        sealing_pasting_data = response_sealing_pasting.data
+
+        # Folding Process data..
+        class_folding = FoldingProcess()
+        response_folding = class_folding.get(request)
+        folding_data = response_folding.data
+
+        # Corrugation Process data..
+        class_corrugation = CorrugationProcess()
+        response_corrugation = class_corrugation.get(request)
+        corrugation_data = response_corrugation.data
+
+        # Corrugation Sheet Pasting Process data..
+        class_corrugation_sheet_pasting = CorrugationSheetPastingAdhesive()
+        response_corrugation_sheet_pasting = class_corrugation_sheet_pasting.get(request)
+        corrugation_sheet_pasting_data = response_corrugation_sheet_pasting.data
+
+        # Packing Process data..
+        class_packing = PackingProcess()
+        response_packing = class_packing.get(request)
+        packing_data = response_packing.data
+
+        # Other Process data..
+        class_other_process = otherProcess()
+        response_other_process = class_other_process.get(request)
+        other_process_data = response_other_process.data
+        
+        # Sorting Process data..
+        class_sorting_process = SortingProcess()
+        response_sorting_process = class_sorting_process.get(request)
+        sorting_process_data = response_sorting_process.data
+
+        # Sheet Checking Process data..
+        class_sheet_checking = SheetChecking()
+        response_sheet_checking = class_sheet_checking.get(request)
+        sheet_checking_data = response_sheet_checking.data
+
+
+
         response_data = {
             "PaperBoard": paper_board_data,
             "Printing": printing_data,
@@ -567,6 +764,18 @@ class OurSpecification_PageLoad(APIView):
             "Lamination": lamination_data,
             "MetPetLamination": metpet_lamination_data,
             "WindowPatching": window_patching_data,
+            "Foiling": foiling_data,
+            "Embossing": embossing_data,
+            "Punching": punching_data,
+            "FinishCutting": finish_cutting_data,
+            "SealingPasting": sealing_pasting_data,
+            "Folding": folding_data,
+            "Corrugation": corrugation_data,
+            "CorrugationSheetPasting": corrugation_sheet_pasting_data,
+            "Packing":packing_data,
+            "OtherProcess":other_process_data,
+            "Sorting": sorting_process_data,
+            "SheetChecking": sheet_checking_data,
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -581,8 +790,8 @@ class GetRawMaterial(APIView):
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
     @swagger_auto_schema(
-        operation_summary="ProductSpecification Page Load API",
-        operation_description="API is working as per front end post request",
+        operation_summary="Raw material API for our specifications tab",
+        operation_description="This API call frequently as per requirement",
         manual_parameters=[
             openapi.Parameter(
                 name='Authorization',

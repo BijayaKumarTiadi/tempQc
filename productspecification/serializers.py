@@ -12,7 +12,8 @@ from .models import ItemProcessname
 from mastersapp.models import ItemGroupMaster
 from .models import GeneralDropdown
 from .models import Lammetpetmaster
-
+from .models import Pastingmaster
+from .models import Extracostmaster
 
 class JobComplexitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -77,3 +78,13 @@ class LammetpetmasterSerializer(serializers.ModelSerializer):
 
     def get_film_micron(self, obj):
         return f"{obj.filmtype} - {obj.micron}"
+    
+class PastingmasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pastingmaster
+        fields = ['pastingid', 'narration']
+
+class ExtracostmasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Extracostmaster
+        fields = ['cprocessno', 'pname']

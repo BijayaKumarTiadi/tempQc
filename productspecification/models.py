@@ -206,3 +206,70 @@ class Lammetpetmaster(models.Model):
     class Meta:
         managed = False
         db_table = 'lammetpetmaster'
+
+class Pastingmaster(models.Model):
+    pastingid = models.CharField(db_column='PastingID', primary_key=True, max_length=10)
+    narration = models.CharField(db_column='Narration', max_length=40, blank=True, null=True)
+    inuse = models.PositiveIntegerField(db_column='InUse')
+    pastinglength = models.FloatField(db_column='PastingLength')
+    avgspeed = models.FloatField(db_column='AvgSpeed')
+    makeready = models.FloatField(db_column='MakeReady')
+    narration2 = models.CharField(db_column='Narration2', max_length=200)
+    pastingadhesiveid = models.CharField(db_column='PastingAdhesiveID', max_length=10)
+    pastingmakereadytime = models.FloatField(db_column='PastingMakeReadyTime')
+    speedpersqmeter = models.FloatField(db_column='SpeedPerSqMeter')
+    fromlengthcm = models.FloatField(db_column='FromLengthcm')
+    tolengthcm = models.FloatField(db_column='ToLengthcm')
+    iscorrugated = models.IntegerField(db_column='IsCorrugated')
+    cartonstyles = models.CharField(db_column='CartonStyles', max_length=500)
+    adhesivegsm = models.FloatField(db_column='AdhesiveGSM')
+
+    class Meta:
+        managed = False
+        db_table = 'pastingmaster'
+
+class Extracostmaster(models.Model):
+    costid = models.CharField(db_column='CostID', primary_key=True, max_length=10)
+    pname = models.CharField(db_column='PName', max_length=45)
+    costtype = models.CharField(db_column='CostType', max_length=45)
+    varpercentage = models.FloatField(db_column='VarPercentage')
+    calcretria = models.CharField(db_column='CalCretria', max_length=60)
+    cprocessno = models.FloatField(db_column='CProcessNo')
+    slabcretria = models.CharField(db_column='SlabCretria', max_length=45)
+    unit = models.CharField(db_column='Unit', max_length=45)
+    mincost = models.FloatField(db_column='MinCost')
+    isactive = models.PositiveIntegerField(db_column='IsActive')
+    costcretria = models.CharField(db_column='CostCretria', max_length=45)
+    mreadywastageper = models.FloatField(db_column='MReadyWastagePer')
+    runningwastageper = models.FloatField(db_column='RunningWastagePer')
+    inputtip = models.CharField(db_column='InputTip', max_length=45)
+    isfiltercondition = models.PositiveIntegerField(db_column='IsFilterCondition')
+    callevel = models.PositiveIntegerField(db_column='CalLevel')
+    comp1 = models.PositiveIntegerField(db_column='Comp1')
+    comp2 = models.PositiveIntegerField(db_column='Comp2')
+    comp3 = models.PositiveIntegerField(db_column='Comp3')
+    comp4 = models.PositiveIntegerField(db_column='Comp4')
+    comp5 = models.PositiveIntegerField(db_column='Comp5')
+    comp6 = models.PositiveIntegerField(db_column='Comp6')
+    comp7 = models.PositiveIntegerField(db_column='Comp7')
+    comp8 = models.PositiveIntegerField(db_column='Comp8')
+    fcvariablename = models.PositiveIntegerField(db_column='FCVariableName')
+    fccondtion = models.PositiveIntegerField(db_column='FCCondtion')
+    fcvalue = models.FloatField(db_column='FCValue')
+    actionname = models.PositiveIntegerField(db_column='ActionName')
+    actionvariable = models.PositiveIntegerField(db_column='ActionVariable')
+    inputuom = models.CharField(db_column='InputUOM', max_length=20)
+    outputuom = models.CharField(db_column='OutputUOM', max_length=20)
+    mispname = models.CharField(db_column='MISPName', max_length=20)
+    alwaysselectpe = models.CharField(db_column='AlwaysSelectPE', max_length=1, blank=True, null=True)
+    alwaysselectce = models.CharField(db_column='AlwaysSelectCE', max_length=1, blank=True, null=True)
+    makerdysheet = models.FloatField(db_column='MakeRdySheet')
+    wastagerunning = models.FloatField(db_column='WastageRunning')
+    minrate = models.FloatField(db_column='MinRate', blank=True, null=True)
+    pruniqueid = models.IntegerField(db_column='PrUniqueID', blank=True, null=True)
+    bpc = models.CharField(db_column='BPC', max_length=1)
+    processdescription = models.CharField(db_column='ProcessDescription', max_length=200)
+
+    class Meta:
+        managed = False
+        db_table = 'extracostmaster'
