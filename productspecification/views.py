@@ -298,51 +298,10 @@ class PageLoadAPI(APIView):
         dropdown_response = dropdown_view.post(request)
 
         if dropdown_response.status_code == status.HTTP_200_OK:
+
+            dropdown_data = dropdown_response.data
             
-            
-            """ Oue Specification Code Merger"""
-
-            # PaperBoard Process Data..
-            class_pbp = PaperBoard()
-            resp_pbp = class_pbp.get(request)
-            paper_board_data = resp_pbp.data
-
-            # Printing Process data..
-            class_printing = PrintingProcess()
-            response_printing = class_printing.get(request)
-            printing_data = response_printing.data
-
-            # Coating Process data..
-            class_coating = CoatingProcess()
-            response_coating = class_coating.get(request)
-            coating_data = response_coating.data
-
-            # Lamination Process data..
-            class_lamination = LaminationProcess()
-            response_lamination = class_lamination.get(request)
-            lamination_data = response_lamination.data
-
-            # MetPet Lamination data..
-            class_metpet_lamination = MetPetLaminationProcess()
-            response_metpet_lamination = class_metpet_lamination.get(request)
-            metpet_lamination_data = response_metpet_lamination.data
-
-            # Window Patching Process data..
-            class_window_patching = WindowPatchingProcess()
-            response_window_patching = class_window_patching.get(request)
-            window_patching_data = response_window_patching.data
-
-            response_data = {
-                "ProductDetails": dropdown_response.data,
-                "PaperBoard": paper_board_data,
-                "Printing": printing_data,
-                "Coating": coating_data,
-                "Lamination": lamination_data,
-                "MetPetLamination": metpet_lamination_data,
-                "WindowPatching": window_patching_data,
-            }
-            
-            return Response(response_data, status=status.HTTP_200_OK)
+            return Response(dropdown_data, status=status.HTTP_200_OK)
         else:
             return Response(dropdown_response.data, status=dropdown_response.status_code)
 
