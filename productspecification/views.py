@@ -188,15 +188,13 @@ class ProductDetail(APIView):
         # DropDownView instance from generalapis app,
         dropdown_view = DropDownView()
         dropdown_response = dropdown_view.post(request)
-        drp = {}
 
         if dropdown_response.status_code == status.HTTP_200_OK:
 
             dropdown_data = dropdown_response.data
-            dropdown_data.update({
-                'JobType': get_general_dropdown('JobType'),
-                'NewRepeat': get_general_dropdown('NewRepeat')
-            })
+
+            dropdown_data['data']['JobType'] = get_general_dropdown('JobType')
+            dropdown_data['data']['NewRepeat'] = get_general_dropdown('NewRepeat')
             
             return Response(dropdown_data, status=status.HTTP_200_OK)
         else:
