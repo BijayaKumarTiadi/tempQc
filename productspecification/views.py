@@ -88,6 +88,102 @@ class ProductDetail(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ViewByStaffOnlyPermission]
 
+    @swagger_auto_schema(
+        operation_summary="ProductSpecification Page Load API",
+        operation_description="API is working as per front end post request",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description='Bearer token',
+                required=True,
+                format='Bearer <Token>'
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'clientmaster': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'companyid': openapi.Schema(type=openapi.TYPE_STRING, description="Company ID"),
+                        'CompanyNameLike': openapi.Schema(type=openapi.TYPE_STRING, description="Company name partial match"),
+                        'isactive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
+                    },
+                    required=['companyid', 'isactive']
+                ),
+                'EmployeeMaster': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'Dept': openapi.Schema(type=openapi.TYPE_STRING, description="Department name"),
+                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
+                    },
+                    required=['Dept', 'IsActive']
+                ),
+                'ProductClass': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
+                    },
+                    required=['IsActive']
+                ),
+                'ProductKind': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
+                    },
+                    required=['IsActive']
+                ),
+                'ProductCategory': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
+                    },
+                    required=['IsActive']
+                ),
+                'UnitMaster': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'IsActive': openapi.Schema(type=openapi.TYPE_INTEGER, description="Active status (1 for active, 0 for inactive, 2 for all)")
+                    },
+                    required=['IsActive']
+                ),
+                
+            },
+            required=[],
+            example={
+                "clientmaster": {
+                    "companyid": "00102",
+                    "CompanyNameLike": "",
+                    "isactive": 1
+                },
+                "EmployeeMaster": {
+                    "Dept": "Marketing",
+                    "IsActive": 0
+                },
+                "ProductClass": {
+                    "IsActive": 2
+                },
+                "ProductKind": {
+                    "IsActive": 1
+                },
+                "ProductCategory": {
+                    "IsActive": 1
+                },
+                "UnitMaster": {
+                    "IsActive": 1
+                },
+            }
+        ),
+        responses={
+            200: "Request was successful",
+            400: "Invalid request",
+            500: "Internal server error"
+        },
+        tags=['Product Specification (FP History Web)']
+    )
+
     def post(self, request):
         # DropDownView instance from generalapis app,
         dropdown_view = DropDownView()
@@ -756,26 +852,28 @@ class OurSpecification(APIView):
         sheet_checking_data = response_sheet_checking.data
 
 
-
         response_data = {
-            "PaperBoard": paper_board_data,
-            "Printing": printing_data,
-            "Coating": coating_data,
-            "Lamination": lamination_data,
-            "MetPetLamination": metpet_lamination_data,
-            "WindowPatching": window_patching_data,
-            "Foiling": foiling_data,
-            "Embossing": embossing_data,
-            "Punching": punching_data,
-            "FinishCutting": finish_cutting_data,
-            "SealingPasting": sealing_pasting_data,
-            "Folding": folding_data,
-            "Corrugation": corrugation_data,
-            "CorrugationSheetPasting": corrugation_sheet_pasting_data,
-            "Packing":packing_data,
-            "OtherProcess":other_process_data,
-            "Sorting": sorting_process_data,
-            "SheetChecking": sheet_checking_data,
+            "message": "Success",
+            "data": {
+                "PaperBoard": paper_board_data,
+                "Printing": printing_data,
+                "Coating": coating_data,
+                "Lamination": lamination_data,
+                "MetPetLamination": metpet_lamination_data,
+                "WindowPatching": window_patching_data,
+                "Foiling": foiling_data,
+                "Embossing": embossing_data,
+                "Punching": punching_data,
+                "FinishCutting": finish_cutting_data,
+                "SealingPasting": sealing_pasting_data,
+                "Folding": folding_data,
+                "Corrugation": corrugation_data,
+                "CorrugationSheetPasting": corrugation_sheet_pasting_data,
+                "Packing":packing_data,
+                "OtherProcess":other_process_data,
+                "Sorting": sorting_process_data,
+                "SheetChecking": sheet_checking_data,           
+            }
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -891,8 +989,15 @@ class GetRawMaterial(APIView):
                     'itemid', 'description', 'iprefix', 'groupid'
                 )
 
-            results = list(items)
+            # results = list(items)
 
-            return Response(results, status=status.HTTP_200_OK)
+
+            response_data = {
+                "message": "Success",
+                "data": {
+                    "row_material": list(items),
+                }}
+
+            return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
