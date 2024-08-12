@@ -207,14 +207,14 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
                 type=openapi.TYPE_STRING
             )
         ],
-        responses={204: "No Content"},
+        responses={200: "ok"},
         tags=['Text Matter Checking']
     )
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
         response_data = {
-            "message": "Success",
+            "message": "Data Deleted Sucessfully",
             "data": {}
         }
-        return Response(response_data, status=status.HTTP_204_NO_CONTENT)
+        return Response(response_data, status=status.HTTP_200_OK)
