@@ -273,3 +273,144 @@ class Extracostmaster(models.Model):
     class Meta:
         managed = False
         db_table = 'extracostmaster'
+
+""" 
+    Product Specification saving / Updation required Model from here 
+"""
+
+class ItemFpmasterDimensions(models.Model):
+    productid = models.CharField(db_column='ProductID', primary_key=True, max_length=10)
+    tuckin_flap = models.FloatField(db_column='TuckIn_Flap')
+    pastingflap = models.FloatField(db_column='PastingFlap')
+    bottomflappercent = models.FloatField(db_column='BottomFlappercent')
+    tonugeheight = models.FloatField(db_column='Tonugeheight')
+    topflap = models.FloatField(db_column='TopFlap')
+    sideear = models.FloatField(db_column='SideEar')
+    bottomflap = models.FloatField(db_column='BottomFlap')
+    topear = models.FloatField(db_column='TopEar')
+    insideear = models.FloatField(db_column='InsideEar')
+    extraflap = models.FloatField(db_column='ExtraFlap')
+    flap1 = models.FloatField(db_column='Flap1')
+    flap2 = models.FloatField(db_column='Flap2')
+    hangheight = models.FloatField(db_column='HangHeight')
+    flap = models.FloatField(db_column='Flap')
+    flapinsert = models.FloatField(db_column='FlapInsert')
+    sidewall = models.FloatField(db_column='Sidewall')
+    wallthickness = models.FloatField()
+    foldingspace = models.FloatField()
+    lockflap = models.FloatField()
+    frontwall = models.FloatField()
+    boardthickness = models.FloatField()
+    gusset = models.FloatField()
+    bagopenning = models.FloatField(db_column='BagOpenning')
+    bottomcrease = models.FloatField()
+    glueflapwidth = models.FloatField()
+    leftear = models.FloatField()
+    rightear = models.FloatField()
+    neckheight = models.FloatField(db_column='Neckheight')
+    lastpannel = models.FloatField()
+    sidepaste = models.FloatField()
+    hangpasting = models.FloatField()
+    pocketheight = models.FloatField()
+    topwall = models.FloatField()
+    pocketbreadth = models.FloatField()
+
+    class Meta:
+        managed = False
+        db_table = 'item_fpmaster_dimensions'
+
+class ItemSpec(models.Model):
+    specid = models.CharField(db_column='SpecID', primary_key=True, max_length=10)
+    itemid = models.CharField(db_column='ItemID', max_length=10)
+    description = models.CharField(db_column='Description', max_length=100)
+    icompanyid = models.CharField(db_column='ICompanyID', max_length=20)
+    info1 = models.CharField(db_column='Info1', max_length=100)
+    info2 = models.CharField(db_column='Info2', max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = 'item_spec'
+        unique_together = (('specid', 'itemid', 'description'),)
+
+class Fpprepress(models.Model):
+    productid = models.CharField(db_column='ProductID', max_length=10, blank=True, null=True)
+    positiveno = models.CharField(db_column='PositiveNo', max_length=20, blank=True, null=True)
+    shadecardno = models.CharField(db_column='ShadeCardNo', max_length=20, blank=True, null=True)
+    dieno = models.CharField(db_column='DieNo', max_length=20, blank=True, null=True)
+    keylineno = models.CharField(db_column='KeyLineNo', max_length=200, blank=True, null=True)
+    remarks = models.CharField(db_column='Remarks', max_length=501)
+    autoid = models.AutoField(db_column='Autoid', primary_key=True)
+    varnish_free_area = models.CharField(max_length=50)
+    foil_keyline = models.CharField(max_length=50)
+    embose_keyline = models.CharField(max_length=50)
+    colour_ref = models.CharField(max_length=100)
+    approved_art_work = models.CharField(db_column='Approved_art_work', max_length=50)
+
+    class Meta:
+        managed = False
+        db_table = 'fpprepress'
+
+class Fppaperboardmaster(models.Model):
+    productid = models.CharField(db_column='ProductID', primary_key=True, max_length=10)
+    itemid1 = models.CharField(db_column='ItemID1', max_length=10)
+    itemid2 = models.CharField(db_column='ItemID2', max_length=10)
+    noofups1 = models.CharField(db_column='NoOfUPS1', max_length=10)
+    noofups2 = models.CharField(db_column='NoOfUPS2', max_length=10)
+    iftwoitem = models.IntegerField(db_column='IfTwoItem')
+    grain = models.CharField(db_column='Grain', max_length=10)
+    boardremark = models.CharField(db_column='BoardRemark', max_length=500)
+
+    class Meta:
+        managed = False
+        db_table = 'fppaperboardmaster'
+
+class Fppaperboarddetail(models.Model):
+    productid = models.CharField(db_column='ProductID', max_length=10)
+    itemid = models.CharField(db_column='ItemID', max_length=10, blank=True, null=True)
+    length = models.CharField(db_column='Length', max_length=10, blank=True, null=True)
+    breadth = models.CharField(db_column='Breadth', max_length=10, blank=True, null=True)
+    upsincutsize = models.CharField(db_column='UPSinCutSize', max_length=10, blank=True, null=True)
+    unit = models.CharField(db_column='Unit', max_length=10, blank=True, null=True)
+    cutinfullsheet = models.CharField(db_column='CutInFullSheet', max_length=20, blank=True, null=True)
+    iftwo = models.IntegerField(db_column='IfTwo', blank=True, null=True)
+    ctc_decklesize = models.FloatField(db_column='CTC_DeckleSize')
+    ctc_grainsize = models.FloatField(db_column='CTC_GrainSize')
+    autoid = models.AutoField(db_column='AutoID', primary_key=True)
+
+    class Meta:
+        managed = False
+        db_table = 'fppaperboarddetail'
+
+class Fprequiredqty(models.Model):
+    productid = models.CharField(db_column='ProductID', max_length=10)
+    itemid = models.CharField(db_column='ItemID', max_length=10)
+    reqqty = models.CharField(db_column='ReqQty', max_length=20)
+    qtyper = models.CharField(db_column='QtyPer', max_length=20)
+    kind = models.CharField(db_column='Kind', max_length=10)
+    processid = models.CharField(db_column='ProcessID', max_length=20)
+    showinallocation = models.IntegerField(db_column='ShowInAllocation')
+    processname = models.CharField(db_column='ProcessName', max_length=300)
+    qtypervalue = models.CharField(db_column='QtyPervalue', max_length=20)
+    autoid = models.AutoField(db_column='AutoID', primary_key=True)
+    unit_name = models.CharField(db_column='Unit_Name', max_length=20)
+    rate = models.FloatField(db_column='Rate')
+    ratevariation = models.FloatField(db_column='Ratevariation')
+    rmper = models.FloatField(db_column='RMPer')
+    prid = models.CharField(db_column='PrID', max_length=45)
+    fb = models.CharField(db_column='FB', max_length=10)
+
+    class Meta:
+        managed = False
+        db_table = 'fprequiredqty'
+
+class FpAttachments(models.Model):
+    productid = models.CharField(db_column='ProductID', primary_key=True, max_length=20)
+    filename = models.CharField(db_column='FileName', max_length=200)
+    copyfrompath = models.CharField(db_column='CopyFromPath', max_length=500)
+    savedinpath = models.CharField(db_column='SavedInPath', max_length=500)
+    fileformat = models.CharField(db_column='FileFormat', max_length=10)
+
+    class Meta:
+        managed = False
+        db_table = 'fp_attachments'
+        unique_together = (('productid', 'filename'),)

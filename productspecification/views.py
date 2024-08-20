@@ -320,6 +320,15 @@ class PrintingProcess(APIView):
         group_string = '00002,00109'
         response_pp['groups'] = get_group_data(group_string)
 
+        """
+            There is One Problem in this way : returning error messages in same key..,
+        """
+
+        # response_pp = {
+        #     'machines':get_machine_process_data('Pr', icompanyid),
+        #     'JobComplexity': get_complexity('Pr',1), 
+        # }
+
         return Response(response_pp, status=status.HTTP_200_OK)
     
 class CoatingProcess(APIView):
