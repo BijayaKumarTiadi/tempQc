@@ -10,11 +10,11 @@ class TextMatterCheckingSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         
         if instance.partialcheckdate:
-            representation['partialcheckdate'] = instance.partialcheckdate.strftime("%d-%m-%Y %H:%M:%S")
+            representation['partialcheckdate'] = instance.partialcheckdate.strftime("%Y-%m-%d %H:%M:%S")
         if instance.fullcheckdate:
-            representation['fullcheckdate'] = instance.fullcheckdate.strftime("%d-%m-%Y %H:%M:%S")
+            representation['fullcheckdate'] = instance.fullcheckdate.strftime("%Y-%m-%d %H:%M:%S")
         if instance.checkdate:
-            representation['checkdate'] = instance.checkdate.strftime("%d-%m-%Y %H:%M:%S")
+            representation['checkdate'] = instance.checkdate.strftime("%Y-%m-%d %H:%M:%S")
         return representation
 
 class ColorcheckingreportSerializer(serializers.ModelSerializer):
@@ -31,8 +31,8 @@ class ColorcheckingreportSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         
         if instance.adatetime:
-            representation['adatetime'] = instance.adatetime.strftime("%d-%m-%Y %H:%M:%S")
+            representation['adatetime'] = instance.adatetime.strftime("%Y-%m-%d %H:%M:%S")
         if instance.mdatetime:
-            representation['mdatetime'] = instance.mdatetime.strftime("%d-%m-%Y %H:%M:%S")
+            representation['mdatetime'] = instance.mdatetime.strftime("%Y-%m-%d %H:%M:%S")
         
         return representation
