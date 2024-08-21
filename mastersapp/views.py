@@ -47,9 +47,9 @@ class PageLoadDropdown(APIView):
             # First query to fetch DocID
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT a.DocID FROM item_jobcardmaster_d as a
+                    SELECT a.DocID,b.description as JobName FROM item_jobcardmaster_d as a, item_master AS b
                     WHERE 
-                        a.IcompanyID=%s
+                        a.itemid=b.itemid AND b.groupid='00008' AND a.IcompanyID=%s
                     """, [icompanyid])
                 rows = cursor.fetchall()
 
