@@ -2,14 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import TextMatterChecking
-from .serializers import TextMatterCheckingSerializer
+from .models import TextMatterChecking, Colorcheckingreport
+from .serializers import TextMatterCheckingSerializer,ColorcheckingreportSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from .permissions import ViewByStaffOnlyPermission
 from django.db import connection, DatabaseError
 from accounts.helpers import GetUserData
 from rest_framework.response import Response
+from datetime import datetime
 
 
 class PageLoadDropdown(APIView):
@@ -103,13 +104,16 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
         tags=['Text Matter Checking']
     )
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        response_data = {
-            "message": "Success",
-            "data": serializer.data
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+        try:
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            response_data = {
+                "message": "Success",
+                "data": serializer.data
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(
         operation_summary="Retrieve a Text Matter Checking",
@@ -126,13 +130,16 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
         tags=['Text Matter Checking']
     )
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        response_data = {
-            "message": "Success",
-            "data": serializer.data
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance)
+            response_data = {
+                "message": "Success",
+                "data": serializer.data
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(
         operation_summary="Create a Text Matter Checking",
@@ -142,14 +149,17 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
         tags=['Text Matter Checking']
     )
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        response_data = {
-            "message": "Success",
-            "data": serializer.data
-        }
-        return Response(response_data, status=status.HTTP_201_CREATED)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            response_data = {
+                "message": "Success",
+                "data": serializer.data
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(
         operation_summary="Update a Text Matter Checking",
@@ -167,16 +177,19 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
         tags=['Text Matter Checking']
     )
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        response_data = {
-            "message": "Success",
-            "data": serializer.data
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+        try:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            response_data = {
+                "message": "Success",
+                "data": serializer.data
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(
         operation_summary="Partially Update a Text Matter Checking",
@@ -211,10 +224,185 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
         tags=['Text Matter Checking']
     )
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        response_data = {
-            "message": "Data Deleted Sucessfully",
-            "data": {}
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            response_data = {
+                "message": "Data Deleted Successfully",
+                "data": {}
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+"""
+    Colore Checking Form API
+"""
+
+class ColorcheckingreportAPIView(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve all Color Checking Reports or a specific one",
+        operation_description="This GET API request returns all color checking reports or a specific one if a primary key is provided.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                description='Bearer token (format: Bearer <Token>)',
+                type=openapi.TYPE_STRING,
+                required=True,
+            )
+        ],
+        responses={
+            200: openapi.Response(description="Success"),
+            404: openapi.Response(description="Not Found"),
+            500: openapi.Response(description="Internal server error"),
+        },
+        tags=['Color Checking Report']
+    )
+    def get(self, request, pk=None):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if pk:
+                report = Colorcheckingreport.objects.get(pk=pk)
+                serializer = ColorcheckingreportSerializer(report)
+            else:
+                reports = Colorcheckingreport.objects.all()
+                serializer = ColorcheckingreportSerializer(reports, many=True)
+
+            response_data = {
+                "message": "Success",
+                "data": serializer.data,
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Colorcheckingreport.DoesNotExist:
+            return Response({'error': 'Colorcheckingreport not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @swagger_auto_schema(
+        operation_summary="Create a new Color Checking Report",
+        operation_description="This POST API request creates a new color checking report.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                description='Bearer token (format: Bearer <Token>)',
+                type=openapi.TYPE_STRING,
+                required=True,
+            )
+        ],
+        request_body=ColorcheckingreportSerializer,
+        responses={
+            201: openapi.Response(description="Created"),
+            400: openapi.Response(description="Bad Request"),
+            500: openapi.Response(description="Internal server error"),
+        },
+        tags=['Color Checking Report']
+    )
+    def post(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            request.data['adatetime'] = datetime.utcnow()  # Set adatetime to current time in UTC
+            serializer = ColorcheckingreportSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                response_data = {
+                    "message": "Success",
+                    "data": serializer.data,
+                }
+                return Response(response_data, status=status.HTTP_201_CREATED)
+            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @swagger_auto_schema(
+        operation_summary="Update an existing Color Checking Report",
+        operation_description="This PUT API request updates an existing color checking report.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                description='Bearer token (format: Bearer <Token>)',
+                type=openapi.TYPE_STRING,
+                required=True,
+            )
+        ],
+        request_body=ColorcheckingreportSerializer,
+        responses={
+            200: openapi.Response(description="Updated"),
+            400: openapi.Response(description="Bad Request"),
+            404: openapi.Response(description="Not Found"),
+            500: openapi.Response(description="Internal server error"),
+        },
+        tags=['Color Checking Report']
+    )
+    def put(self, request, pk):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            report = Colorcheckingreport.objects.get(pk=pk)
+            request.data['mdatetime'] = datetime.utcnow()  # Set mdatetime to current time in UTC
+            serializer = ColorcheckingreportSerializer(report, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                response_data = {
+                    "message": "Success",
+                    "data": serializer.data,
+                }
+                return Response(response_data, status=status.HTTP_200_OK)
+            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Colorcheckingreport.DoesNotExist:
+            return Response({'error': 'Colorcheckingreport not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @swagger_auto_schema(
+        operation_summary="Delete a Color Checking Report",
+        operation_description="This DELETE API request deletes an existing color checking report.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                description='Bearer token (format: Bearer <Token>)',
+                type=openapi.TYPE_STRING,
+                required=True,
+            )
+        ],
+        responses={
+            200: openapi.Response(description="Deleted"),
+            404: openapi.Response(description="Not Found"),
+            500: openapi.Response(description="Internal server error"),
+        },
+        tags=['Color Checking Report']
+    )
+    def delete(self, request, pk):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+        if icompanyid is None:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            report = Colorcheckingreport.objects.get(pk=pk)
+            report.delete()
+            response_data = {
+                "message": "Success",
+                "data": f"Colorcheckingreport with id {pk} deleted successfully",
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Colorcheckingreport.DoesNotExist:
+            return Response({'error': 'Colorcheckingreport not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
