@@ -10,7 +10,7 @@ from .permissions import ViewByStaffOnlyPermission
 from django.db import connection, DatabaseError
 from accounts.helpers import GetUserData
 from rest_framework.response import Response
-from datetime import datetime
+from datetime import datetime,timezone
 
 
 class PageLoadDropdown(APIView):
@@ -314,7 +314,9 @@ class ColorcheckingreportAPIView(APIView):
         if icompanyid is None:
             return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            request.data['adatetime'] = datetime.utcnow()  # Set adatetime to current time in UTC
+            request.data['adatetime'] = datetime.now(timezone.utc)
+            request.data['mdatetime'] = datetime.now(timezone.utc)
+            print(request.data)
             serializer = ColorcheckingreportSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
@@ -355,7 +357,7 @@ class ColorcheckingreportAPIView(APIView):
             return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             report = Colorcheckingreport.objects.get(pk=pk)
-            request.data['mdatetime'] = datetime.utcnow()  # Set mdatetime to current time in UTC
+            request.data['mdatetime'] = datetime.now(timezone.utc)
             serializer = ColorcheckingreportSerializer(report, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()

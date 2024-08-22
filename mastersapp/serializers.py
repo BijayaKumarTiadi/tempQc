@@ -22,8 +22,8 @@ class ColorcheckingreportSerializer(serializers.ModelSerializer):
         model = Colorcheckingreport
         fields = '__all__'
         extra_kwargs = {
-            'adatetime': {'read_only': True},
-            'mdatetime': {'read_only': True},
+            'adatetime': {'required': False},
+            'mdatetime': {'required': False},
             'delta': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
     
