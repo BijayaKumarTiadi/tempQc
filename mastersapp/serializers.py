@@ -22,10 +22,11 @@ class ColorcheckingreportSerializer(serializers.ModelSerializer):
         model = Colorcheckingreport
         fields = '__all__'
         extra_kwargs = {
-            'adatetime': {'required': False},
-            'mdatetime': {'required': False},
+            'adatetime': {'required': False,'read_only': False},
+            'mdatetime': {'required': False,'read_only': False},
             'delta': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
+        # 'mdatetime': {'read_only': True},
     
     def to_representation(self, instance):
         representation = super().to_representation(instance)
