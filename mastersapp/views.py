@@ -92,7 +92,102 @@ class PageLoadDropdown(APIView):
         except Exception as e:
             return Response({'error': 'An unexpected error occurred', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @swagger_auto_schema(
+        operation_summary="Search data based on DocID",
+        operation_description="This POST API searches for details based on provided DocID.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='Authorization',
+                in_=openapi.IN_HEADER,
+                description='Bearer token (format: Bearer <Token>)',
+                type=openapi.TYPE_STRING,
+                required=True,
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'DocID': openapi.Schema(type=openapi.TYPE_STRING, description='Document ID to search for')
+                # 'IcompanyID': openapi.Schema(type=openapi.TYPE_STRING, description='Company ID')
+            },
+            required=['DocID']
+        ),
+        responses={
+            200: openapi.Response(description="Success"),
+            400: openapi.Response(description="Bad Request"),
+            500: openapi.Response(description="Internal server error"),
+        },
+        tags=['Text Matter Checking']
+    )
 
+    def post(self, request):
+        user = GetUserData.get_user(request)
+        icompanyid = user.icompanyid
+
+        docid_pattern = request.data.get('DocID')
+        # icompanyid = request.data.get('IcompanyID')
+
+        if not docid_pattern:
+            return Response({'error': 'DocID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not icompanyid:
+            return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Query to fetch details based on DocID
+            with connection.cursor() as cursor:
+                # cursor.execute("""
+                #     SELECT a.DocID, b.description as JobName FROM item_jobcardmaster_d as a
+                #     JOIN item_master AS b ON a.itemid = b.itemid
+                #     WHERE a.DocID like '%%s%' AND a.IcompanyID=%s
+                #     """, [docid, icompanyid])
+
+                cursor.execute("""
+                    SELECT a.DocID, b.description AS JobName FROM item_jobcardmaster_d AS a
+                    JOIN item_master AS b ON a.itemid = b.itemid
+                    WHERE a.DocID LIKE %s AND a.IcompanyID=%s
+                    """, [f'%{docid_pattern}%', icompanyid])
+                rows = cursor.fetchall()
+
+            results = [
+                {
+                    'DocID': row[0],
+                    'JobName': row[1]  # Include JobName in results
+                } 
+                for row in rows
+            ]
+
+            # Second query to fetch UserID and UserName
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT UserID, UserName FROM usermaster 
+                    WHERE Icompanyid=%s
+                    """, [icompanyid])
+                user_rows = cursor.fetchall()
+
+            user_data_results = [
+                {
+                    'UserID': user_row[0],
+                    'UserName': user_row[1]
+                } 
+                for user_row in user_rows
+            ]
+
+            response_data = {
+                "message": "Success",
+                "data": {
+                    "JobIdDropdown": results,
+                    "user_data": user_data_results,
+                }
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        except DatabaseError as e:
+            return Response({'error': 'Database error occurred', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Exception as e:
+            return Response({'error': 'An unexpected error occurred', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class TextMatterCheckingViewSet(viewsets.ModelViewSet):
     queryset = TextMatterChecking.objects.all()
@@ -151,6 +246,8 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         try:
+            request.data['adatetime'] = datetime.now(timezone.utc)
+            request.data['mdatetime'] = datetime(2060, 1, 1, 1, 1, 1, tzinfo=timezone.utc)
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
@@ -179,6 +276,7 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         try:
+            request.data['mdatetime'] = datetime.now(timezone.utc)
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
