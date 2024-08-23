@@ -11,7 +11,8 @@ from django.db import connection, DatabaseError
 from accounts.helpers import GetUserData
 from rest_framework.response import Response
 from datetime import datetime,timezone
-
+from django.utils import timezone
+import pytz
 
 class PageLoadDropdown(APIView):
     authentication_classes = [JWTAuthentication]
@@ -250,8 +251,11 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         try:
-            request.data['adatetime'] = datetime.now(timezone.utc)
-            request.data['mdatetime'] = datetime(2060, 1, 1, 1, 1, 1, tzinfo=timezone.utc)
+            india_tz = pytz.timezone('Asia/Kolkata')
+            current_time_in_india = timezone.now().astimezone(india_tz)
+            current_time_in_india = current_time_in_india.strftime('%Y-%m-%d %H:%M:%S')
+            request.data['adatetime'] = current_time_in_india
+            request.data['mdatetime'] = current_time_in_india
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
@@ -280,7 +284,11 @@ class TextMatterCheckingViewSet(viewsets.ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         try:
-            request.data['mdatetime'] = datetime.now(timezone.utc)
+            india_tz = pytz.timezone('Asia/Kolkata')
+            current_time_in_india = timezone.now().astimezone(india_tz)
+            current_time_in_india = current_time_in_india.strftime('%Y-%m-%d %H:%M:%S')
+            print(current_time_in_india)
+            request.data['mdatetime'] = current_time_in_india
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -416,9 +424,11 @@ class ColorcheckingreportAPIView(APIView):
         if icompanyid is None:
             return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            request.data['adatetime'] = datetime.now(timezone.utc)
-            # request.data['mdatetime'] = datetime.now(timezone.utc)
-            request.data['mdatetime'] = datetime(1990, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+            india_tz = pytz.timezone('Asia/Kolkata')
+            current_time_in_india = timezone.now().astimezone(india_tz)
+            current_time_in_india = current_time_in_india.strftime('%Y-%m-%d %H:%M:%S')
+            request.data['adatetime'] = current_time_in_india
+            request.data['mdatetime'] = current_time_in_india
             print(request.data)
             serializer = ColorcheckingreportSerializer(data=request.data)
             if serializer.is_valid():
@@ -459,8 +469,11 @@ class ColorcheckingreportAPIView(APIView):
         if icompanyid is None:
             return Response({'error': 'ICompanyID is required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
+            india_tz = pytz.timezone('Asia/Kolkata')
+            current_time_in_india = timezone.now().astimezone(india_tz)
+            current_time_in_india = current_time_in_india.strftime('%Y-%m-%d %H:%M:%S')
             report = Colorcheckingreport.objects.get(pk=pk)
-            request.data['mdatetime'] = datetime.now(timezone.utc)
+            request.data['mdatetime'] = current_time_in_india
             serializer = ColorcheckingreportSerializer(report, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
