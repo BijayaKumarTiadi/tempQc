@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'proformainvoice',
     'generalapis',
     'productspecification',
+    'qualitycontrol',
 
 ]
 

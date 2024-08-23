@@ -57,6 +57,7 @@ urlpatterns = [
     path("api/v1/pi",include('proformainvoice.urls')),
 
     path("api/v1/ps/",include('productspecification.urls')),
+    path("api/v1/qc",include('qualitycontrol.urls')),
 
 
     

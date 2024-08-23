@@ -607,20 +607,6 @@ class ItemDimension(models.Model):
         managed = False
         db_table = 'item_dimension'
 
-# class TextMatterChecking(models.Model):
-#     autoid = models.AutoField(db_column='AutoId', primary_key=True)
-#     jobid = models.CharField(db_column='JobId',unique=True , max_length=20)
-#     criticaldefect = models.CharField(db_column='CriticalDefect', max_length=50)
-#     checkdate = models.DateTimeField(db_column='CheckDate')
-#     partialcheckdate = models.DateTimeField(db_column='PartialCheckDate')
-#     fullcheckdate = models.DateTimeField(db_column='FullCheckDate')
-#     checkingmethod = models.CharField(db_column='CheckingMethod', max_length=50)
-#     checkedby = models.CharField(db_column='CheckedBy', max_length=10)
-#     remarks = models.CharField(db_column='Remarks', max_length=200)
-
-#     class Meta:
-#         managed = False
-#         db_table = 'text_matter_checking'
 
 class TextMatterChecking(models.Model):
     autoid = models.AutoField(db_column='AutoId', primary_key=True)
